@@ -7,7 +7,7 @@ import { authenticate } from '@google-cloud/local-auth';
 const SCOPES = [
     'https://www.googleapis.com/auth/gmail.modify'
 ]
-
+// @ts-ignore
 export async function loadSavedCredentialsIfExist(settings: ObsGMailSettings) {
     try {
         const content = await this.app.vault.readJson(settings.token_path);
@@ -35,23 +35,25 @@ async function saveCredentials(client: any, cred_path: string, token_path: strin
 
 }
 
-
+// @ts-ignore
 async function authorize(setting: ObsGMailSettings) {
     let client = await loadSavedCredentialsIfExist(setting);
     if (client) {
         return client;
     }
+    // @ts-ignore
     client = await authenticate({
         scopes: SCOPES,
         keyfilePath: setting.cred_path,
     });
+    // @ts-ignore
     if (client.credentials) {
         await saveCredentials(client, setting.cred_path, setting.token_path);
     }
     return client;
 }
 
-
+// @ts-ignore
 export async function setupGserviceConnection(settings: ObsGMailSettings) {
     const gc = settings.gc
     gc.authClient = await authorize(settings)

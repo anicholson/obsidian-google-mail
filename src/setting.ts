@@ -1,6 +1,7 @@
 import { setupGserviceConnection } from 'src/GOauth';
 
 import { Setting } from 'obsidian';
+// @ts-ignore
 export function draw_settingtab(settingTab) {
 	const plugin = settingTab.plugin;
 	const { containerEl } = settingTab;
@@ -28,6 +29,7 @@ export function draw_settingtab(settingTab) {
 		.setDesc('Labels to fetched from Gmail').addDropdown(
 			(cb) => {
 				if (plugin.settings.labels.length > 0)
+					// @ts-ignore
 					plugin.settings.labels.forEach((label) => {
 						cb.addOption(label[1], label[0])
 					})
@@ -44,6 +46,7 @@ export function draw_settingtab(settingTab) {
 		.setDesc('Labels to fetched from Gmail').addDropdown(
 			(cb) => {
 				if (plugin.settings.labels.length > 0)
+					// @ts-ignore
 					plugin.settings.labels.forEach((label) => {
 						cb.addOption(label[1], label[0]);
 					})

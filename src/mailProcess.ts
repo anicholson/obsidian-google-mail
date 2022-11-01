@@ -1,14 +1,13 @@
 import { request } from 'obsidian';
-import { NodeHtmlMarkdown, NodeHtmlMarkdownOptions } from 'node-html-markdown'
 const TurndownService = require('turndown')
 const turndownService = new TurndownService()
-
+// @ts-ignore
 export async function getMailTitle(title_candidates) {
     let title = findTitle(title_candidates)
     title = formatTitle(title)
     return title
 }
-
+// @ts-ignore
 export async function processMailBody(res) {
     const payload = (res.data.messages || [])[0].payload
     let raw = ""
@@ -53,7 +52,9 @@ async function GetPageTitle(url: string): Promise<string> {
         if (title == null || blank(title?.innerText)) {
             // If site is javascript based and has a no-title attribute when unloaded, use it.
             var noTitle = title?.getAttr("no-title");
+            // @ts-ignore
             if (notBlank(noTitle)) {
+                // @ts-ignore
                 return noTitle;
             }
 
@@ -78,13 +79,16 @@ async function fetchUrlTitle(url: string): Promise<string> {
         return "Site Unreachable";
     }
 }
-
+// @ts-ignore
 async function replaceAsync(str, regex, asyncFn) {
+    // @ts-ignore
     const promises = [];
+    // @ts-ignore
     str.replace(regex, (match, ...args) => {
         const promise = asyncFn(match, ...args);
         promises.push(promise);
     });
+    // @ts-ignore
     const data = await Promise.all(promises);
     return str.replace(regex, () => data.shift());
 }

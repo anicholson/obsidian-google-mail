@@ -43,7 +43,7 @@ const DEFAULT_SETTINGS: ObsGMailSettings = {
 	to_label: "",
 	mail_folder: "",
 	cred_path: "",
-	token_path: "/.obsidian/.token.json",
+	token_path: "/.obsidian/plugins/obsidian-google-mail/.token.json",
 	labels: [[]]
 }
 

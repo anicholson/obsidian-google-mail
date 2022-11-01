@@ -1,7 +1,7 @@
 import { Notice } from 'obsidian';
 import { google, gmail_v1 } from 'googleapis';
 import { getMailTitle, processMailBody, incr_filename, appendPrefix } from 'src/mailProcess';
-
+// @ts-ignore
 export function createGmailConnect(client) {
     return google.gmail({
         version: 'v1',

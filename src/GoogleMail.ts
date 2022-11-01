@@ -1,16 +1,7 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
-import { OAuth2Client } from 'googleapis-common';
+import { App, request, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 import { google, gmail_v1, chat_v1 } from 'googleapis';
 const { authenticate } = require('@google-cloud/local-auth');
-// import { authenticate } from '@google-cloud/local-auth';
-const http = require('http');
-const url = require('url');
-const opn = require('open');
 const fs = require('fs').promises;
-const path = require('path');
-const destroyer = require('server-destroy');
-// Remember to rename these classes and interfaces!
-// const CREDENTIALS_PATH = path.join("/Users/ldchen/Mars/.obsidian/plugins/obsidian-google-mail", 'credentials.json');
 const SCOPES = [
 	'https://www.googleapis.com/auth/gmail.modify'
 ]
@@ -34,6 +25,7 @@ interface MyPluginSettings {
 	mail_folder: string;
 	cred_path: string;
 	token_path: string;
+	labels: Array<Array<string>>;
 }
 
 
@@ -52,46 +44,10 @@ const DEFAULT_SETTINGS: MyPluginSettings = {
 	to_label: "",
 	mail_folder: "",
 	cred_path: "",
-	token_path: "./.token.json"
+	token_path: "/.obsidian/.token.json",
+	labels: [[]]
 }
 
-/**
- * Open an http server to accept the oauth callback. In this simple example, the only request to our webserver is to /callback?code=<code>
- */
-// async function authenticate(gc: gservice) {
-// 	console.log("in authentic")
-// 	return new Promise((resolve, reject) => {
-// 		// grab the url that will be used for authorization
-// 		const oauth2Client = gc.authClient
-// 		const authorizeUrl = oauth2Client.generateAuthUrl({
-// 			access_type: 'offline',
-// 			scope: gc.scope.join(' '),
-// 		});
-// 		const server = http
-// 			.createServer(async (req, res) => {
-// 				try {
-// 					if (req.url.indexOf('/oauth2callback') > -1) {
-// 						const qs = new url.URL(req.url, 'http://localhost:9999')
-// 							.searchParams;
-// 						res.end('Authentication successful! Please return to the console.');
-// 						server.destroy();
-// 						const { tokens } = await oauth2Client.getToken(qs.get('code'));
-// 						oauth2Client.credentials = tokens; // eslint-disable-line require-atomic-updates
-// 						gc.refresh_token = oauth2Client.credentials.refresh_token || "" // eslint-disable-line require-atomic-updates
-// 						resolve(oauth2Client);
-// 						// return oauth2Client
-// 					}
-// 				} catch (e) {
-// 					reject(e);
-// 				}
-// 			})
-// 			.listen(9999, () => {
-// 				// open the browser to the authorize url to start the workflow
-// 				opn(authorizeUrl, { wait: false }).then(cp => cp.unref());
-// 			});
-// 		destroyer(server);
-// 	});
-// }
 
 async function listLabels(gmail: gmail_v1.Gmail) {
 
@@ -103,10 +59,11 @@ async function listLabels(gmail: gmail_v1.Gmail) {
 		console.log('No labels found.');
 		return;
 	}
-	console.log('Labels:');
+	let label_list = Array<Array<string>>();
 	labels.forEach((label) => {
-		console.log(`- ${label.name}:${label.id}`);
+		label_list.push([String(label.name), String(label.id)])
 	});
+	return label_list;
 }
 
 async function getLabelIDbyName(name: string, gmail: gmail_v1.Gmail) {
@@ -126,7 +83,7 @@ function base64ToUTF8(data: string) {
 }
 
 function getMailPlainText(res) {
-	console.log(res.data.messages)
+	// console.log(res.data.messages)
 	const raw = ((res.data.messages || [])[0].payload?.parts || [])[0].body?.data || ""
 	return base64ToUTF8(raw)
 }
@@ -134,6 +91,70 @@ function getMailPlainText(res) {
 function replaceInMailLink(text: string) {
 	const regex = /(\S*) (\(https:\/\/[^)]*\))/gm;
 	return text.replace(regex, `[$1]$2`)
+}
+
+function blank(text: string): boolean {
+	return text === undefined || text === null || text === "";
+}
+
+function notBlank(text: string): boolean {
+	return !blank(text);
+}
+async function GetPageTitle(url: string): Promise<string> {
+	try {
+		const html = await request({ url });
+
+		const doc = new DOMParser().parseFromString(html, "text/html");
+		const title = doc.querySelectorAll("title")[0];
+
+		if (title == null || blank(title?.innerText)) {
+			// If site is javascript based and has a no-title attribute when unloaded, use it.
+			var noTitle = title?.getAttr("no-title");
+			if (notBlank(noTitle)) {
+				return noTitle;
+			}
+
+			// Otherwise if the site has no title/requires javascript simply return Title Unknown
+			return url;
+		}
+
+		return title.innerText;
+	} catch (ex) {
+		console.error(ex);
+
+		return "Site Unreachable";
+	}
+}
+
+async function fetchUrlTitle(url: string): Promise<string> {
+	try {
+		const title = await GetPageTitle(url);
+		return title.replace(/(\r\n|\n|\r)/gm, "").trim();
+	} catch (error) {
+		// console.error(error)
+		return "Site Unreachable";
+	}
+}
+
+async function replaceAsync(str, regex, asyncFn) {
+	const promises = [];
+	str.replace(regex, (match, ...args) => {
+		const promise = asyncFn(match, ...args);
+		promises.push(promise);
+	});
+	const data = await Promise.all(promises);
+	return str.replace(regex, () => data.shift());
+}
+
+async function uriToTitleURI(url: string): Promise<string> {
+	url = url.trim()
+	const title = await GetPageTitle(url);
+	return `[${title}](${url})`
+}
+
+async function retriveURITitle(text: string) {
+	const regex = /[^(](http.*)[^)]/gm;
+	return replaceAsync(text, regex, uriToTitleURI)
 }
 
 function appendPrefix(prefix: string, text: string) {
@@ -160,11 +181,12 @@ async function incr_filename(title: string, folder: string) {
 	let idx = 1
 	while (isExist) {
 		tmp = title + "_" + idx.toString()
-		isExist = await this.app.vault.exists(folder + "/" + `${title}.md`)
+		isExist = await this.app.vault.exists(folder + "/" + `${tmp}.md`)
 		idx++
 	}
 	return tmp
 }
+
 
 async function saveMail(folder: string, gmail: gmail_v1.Gmail, id: string) {
 	const res = await gmail.users.threads.get({
@@ -172,15 +194,16 @@ async function saveMail(folder: string, gmail: gmail_v1.Gmail, id: string) {
 		id: id,
 		format: 'full'
 	});
+	console.log("Get staus: " + res.status);
 	const title_candidates = ((res.data.messages || [])[0].payload?.headers || [])
 	let title = findTitle(title_candidates)
 	title = formatTitle(title)
 	title = await incr_filename(title, folder)
-	// const TOKEN_PATH = path.join(folder, `${title}.md`);
+	// const TOKEN_PATH = path.join(folder, `${ title }.md`);
 	let txt = getMailPlainText(res);
 	txt = replaceInMailLink(txt)
+	txt = await retriveURITitle(txt)
 	txt = appendPrefix("tags:: #captured\n", txt)
-	console.log("Save Mail: " + title)
 	await this.app.vault.create(folder + "/" + `${title}.md`, txt)
 	// await fs.writeFile(TOKEN_PATH, txt);
 }
@@ -213,52 +236,34 @@ async function mkdirP(path: string) {
 	}
 }
 
-async function fetchMails(from_label: string, to_label: string, base_folder: string, gmail: gmail_v1.Gmail) {
+async function fetchMails(fromID: string, toID: string, base_folder: string, gmail: gmail_v1.Gmail) {
 	new Notice('Start Fetch Mail');
 	await mkdirP(base_folder)
-	const fromID = await getLabelIDbyName(from_label, gmail)
-	const toID = await getLabelIDbyName(to_label, gmail)
 	const threads = await fetchMailList(fromID, gmail) || []
-	console.log(threads)
+	console.log(threads);
 	for (let i = 0; i < threads.length; i++) {
+		if (i % 10 == 0)
+			new Notice(`Fetching Mail ${i} /${threads.length}`);
 		const id = threads[i].id || ""
 		await saveMail(base_folder, gmail, id);
-	}
-	new Notice('Finished Fetch Mails');
-	for (let i = 0; i < threads.length; i++) {
-		const id = threads[i].id || ""
 		await updateLabel(fromID, toID, id, gmail);
 	}
-	new Notice('Finished Move Mails');
+	new Notice('End Fetch Mail');
 }
 
 
 
 
 async function loadSavedCredentialsIfExist(settings: MyPluginSettings) {
-	console.log(settings)
-	const TOKEN_PATH = path.join(settings.credentials_path, '.token.json');
 	try {
-		const content = await fs.readFile(TOKEN_PATH);
-		const credentials = JSON.parse(content);
-		return google.auth.fromJSON(credentials);
+		const content = await this.app.vault.readJson(settings.token_path);
+		return google.auth.fromJSON(content);
 	} catch (err) {
 		return null;
 	}
 }
 
-// async function saveCredentials(settings: MyPluginSettings) {
-// 	const TOKEN_PATH = path.join(settings.credentials_path, '.token.json');
-// 	const payload = JSON.stringify({
-// 		type: 'authorized_user',
-// 		client_id: settings.client_id,
-// 		client_secret: settings.client_secret,
-// 		refresh_token: settings.gc.authClient.credentials.refresh_token
-// 	});
-// 	await fs.writeFile(TOKEN_PATH, payload);
-// }
-
-async function saveCredentials(client, cred_path, token_path) {
+async function saveCredentials(client: any, cred_path: string, token_path: string) {
 	const content = await fs.readFile(cred_path);
 	const keys = JSON.parse(content);
 	const key = keys.installed || keys.web;
@@ -268,10 +273,12 @@ async function saveCredentials(client, cred_path, token_path) {
 		client_secret: key.client_secret,
 		refresh_token: client.credentials.refresh_token,
 	});
-	console.log("TOKEN:" + token_path)
+	// console.log("TOKEN:" + token_path)
 	const isExist = await this.app.vault.exists(token_path)
-	await this.app.vault.create(token_path, payload);
+	if (!isExist)
+		await this.app.vault.create(token_path, payload);
 	// await fs.writeFile(token_path, payload);
+
 }
 
 
@@ -307,29 +314,14 @@ export default class MyPlugin extends Plugin {
 			id: 'Gmail-Fetch',
 			name: 'Gmail-Fetch',
 			callback: () => {
-				listLabels(this.settings.gc.gmail);
+				listLabels(this.settings.gc.gmail).then((labels: string[][]) => {
+					console.log(labels);
+				})
 			}
 		});
 
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'Gmail-List',
-			name: 'Gmail-List',
-			callback: () => {
-				listLabels(this.settings.gc.gmail);
-			}
-		});
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new SampleSettingTab(this.app, this));
-
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
-
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
 	}
 
 	onunload() {
@@ -337,7 +329,7 @@ export default class MyPlugin extends Plugin {
 	}
 
 	async loadSettings() {
-		console.log("load setting")
+		// console.log("load setting")
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 		let client = await loadSavedCredentialsIfExist(this.settings) || "";
 		if (client !== "") {
@@ -360,7 +352,6 @@ async function authorize(setting: MyPluginSettings) {
 	if (client) {
 		return client;
 	}
-	console.log("PATH=" + setting.cred_path)
 	client = await authenticate({
 		scopes: SCOPES,
 		keyfilePath: setting.cred_path,
@@ -372,15 +363,16 @@ async function authorize(setting: MyPluginSettings) {
 }
 
 
-function setupGserviceConnection(settings: MyPluginSettings) {
-	new Notice("Try to load credential file")
-	console.log(settings)
+async function setupGserviceConnection(settings: MyPluginSettings) {
+	// new Notice("Try to load credential file")
+	// console.log(settings)
 	const gc = settings.gc
-	gc.authClient = authorize(settings)
+	gc.authClient = await authorize(settings)
 	gc.gmail = google.gmail({
 		version: 'v1',
 		auth: gc.authClient
 	})
+	settings.labels = await listLabels(gc.gmail) || [[]]
 	new Notice("Finished Login Setting")
 }
 
@@ -411,30 +403,42 @@ class SampleSettingTab extends PluginSettingTab {
 					cb.setButtonText("Setup")
 						.setCta()
 						.onClick(() => {
-							setupGserviceConnection(this.plugin.settings)
+							setupGserviceConnection(this.plugin.settings).then(() => { this.display(); })
 						});
 				});
 
 		new Setting(containerEl)
 			.setName('>> Mail from label')
-			.setDesc('Labels to fetched from Gmail')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.from_label)
-				.onChange(async (value) => {
-					this.plugin.settings.from_label = value;
-					await this.plugin.saveSettings();
-				}));
+			.setDesc('Labels to fetched from Gmail').addDropdown(
+				(cb) => {
+					if (this.plugin.settings.labels.length > 0)
+						this.plugin.settings.labels.forEach((label) => {
+							cb.addOption(label[1], label[0])
+						})
+					if (this.plugin.settings.from_label)
+						cb.setValue(this.plugin.settings.from_label)
+					cb.onChange(async (value) => {
+						this.plugin.settings.from_label = value;
+						await this.plugin.saveSettings();
+					})
+				}
+			)
 		new Setting(containerEl)
 			.setName('Mail to label >>')
-			.setDesc('Labels to fetched from Gmail')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.to_label)
-				.onChange(async (value) => {
-					this.plugin.settings.to_label = value;
-					await this.plugin.saveSettings();
-				}));
+			.setDesc('Labels to fetched from Gmail').addDropdown(
+				(cb) => {
+					if (this.plugin.settings.labels.length > 0)
+						this.plugin.settings.labels.forEach((label) => {
+							cb.addOption(label[1], label[0]);
+						})
+					if (this.plugin.settings.to_label)
+						cb.setValue(this.plugin.settings.to_label)
+					cb.onChange(async (value) => {
+						this.plugin.settings.to_label = value;
+						await this.plugin.saveSettings();
+					})
+				}
+			)
 		new Setting(containerEl)
 			.setName('Mail Folder')
 			.setDesc('folder to store mail notes')

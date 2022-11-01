@@ -22,6 +22,8 @@
 		"typescript": "4.7.4"
 	},
 	"dependencies": {
-		"googleapis": "^109.0.0"
+		"googleapis": "^109.0.0",
+		"open": "^8.4.0",
+		"server-destroy": "^1.0.1"
 	}
 }

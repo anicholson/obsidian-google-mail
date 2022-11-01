@@ -1,4 +1,11 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { google, authenticate } from 'googleapis';
+// import { authenticate } from '@google-cloud/local-auth';
+const http = require('http');
+const url = require('url');
+const opn = require('open');
+const destroyer = require('server-destroy');
+const gmail = google.gmail('v1');
 
 // Remember to rename these classes and interfaces!
 
@@ -10,6 +17,74 @@ const DEFAULT_SETTINGS: MyPluginSettings = {
 	mySetting: 'default'
 }
 
+const oauth2Client = new google.auth.OAuth2(
+	'279747116549-fmun5sm7q8qvqd3qpk0onrhu464vjo0n.apps.googleusercontent.com',
+	'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',
+	'http://localhost:9999/oauth2callback'
+);
+google.options({ auth: oauth2Client });
+
+const scopes = [
+	'https://www.googleapis.com/auth/gmail.readonly'
+];
+/**
+ * Open an http server to accept the oauth callback. In this simple example, the only request to our webserver is to /callback?code=<code>
+ */
+async function authenticate() {
+
+	return new Promise((resolve, reject) => {
+		// grab the url that will be used for authorization
+		const authorizeUrl = oauth2Client.generateAuthUrl({
+			access_type: 'offline',
+			scope: scopes.join(' '),
+		});
+		const server = http
+			.createServer(async (req, res) => {
+				try {
+					if (req.url.indexOf('/oauth2callback') > -1) {
+						const qs = new url.URL(req.url, 'http://localhost:9999')
+							.searchParams;
+						res.end('Authentication successful! Please return to the console.');
+						server.destroy();
+						const { tokens } = await oauth2Client.getToken(qs.get('code'));
+						oauth2Client.credentials = tokens; // eslint-disable-line require-atomic-updates
+						resolve(oauth2Client);
+						// return oauth2Client
+					}
+				} catch (e) {
+					reject(e);
+				}
+			})
+			.listen(9999, () => {
+				// open the browser to the authorize url to start the workflow
+				opn(authorizeUrl, { wait: false }).then(cp => cp.unref());
+			});
+		destroyer(server);
+	});
+}
+
+async function authorize() {
+	if (!oauth2Client.credentials.refresh_token)
+		return authenticate()
+}
+
+async function runSample() {
+	// retrieve user profile
+	console.log("runSample")
+	console.log(oauth2Client)
+	const res = await gmail.users.labels.list({
+		userId: 'me'
+	});
+	console.log(res.data);
+}
+
+
+async function gmailFetch() {
+	console.log(oauth2Client)
+	console.log('Trigger');
+	authorize().then(runSample).catch(console.error)
+}
+
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
 
@@ -17,10 +92,11 @@ export default class MyPlugin extends Plugin {
 		await this.loadSettings();
 
 		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
+		const ribbonIconEl = this.addRibbonIcon('dice', 'gmail fetch',
+			(evt: MouseEvent) => {
+				new Notice('GM');
+				gmailFetch();
+			});
 		// Perform additional things with the ribbon
 		ribbonIconEl.addClass('my-plugin-ribbon-class');
 
@@ -30,10 +106,10 @@ export default class MyPlugin extends Plugin {
 
 		// This adds a simple command that can be triggered anywhere
 		this.addCommand({
-			id: 'open-sample-modal-simple',
-			name: 'Open sample modal (simple)',
+			id: 'Gmail-Fetch',
+			name: 'Gmail-Fetch',
 			callback: () => {
-				new SampleModal(this.app).open();
+				gmailFetch()
 			}
 		});
 		// This adds an editor command that can perform some operation on the current editor instance
@@ -97,12 +173,12 @@ class SampleModal extends Modal {
 	}
 
 	onOpen() {
-		const {contentEl} = this;
+		const { contentEl } = this;
 		contentEl.setText('Woah!');
 	}
 
 	onClose() {
-		const {contentEl} = this;
+		const { contentEl } = this;
 		contentEl.empty();
 	}
 }
@@ -116,11 +192,11 @@ class SampleSettingTab extends PluginSettingTab {
 	}
 
 	display(): void {
-		const {containerEl} = this;
+		const { containerEl } = this;
 
 		containerEl.empty();
 
-		containerEl.createEl('h2', {text: 'Settings for my awesome plugin.'});
+		containerEl.createEl('h2', { text: 'Settings for my awesome plugin.' });
 
 		new Setting(containerEl)
 			.setName('Setting #1')

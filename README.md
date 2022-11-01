@@ -1,73 +1,58 @@
-# Obsidian Sample Plugin
+# Obsidian Google Mail
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+This plugin save emails on Gmail as markdown notes.
+The plugin use email labels to select which mails to fetch, and a new label will be added to distiguish.
 
-This project uses Typescript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in Typescript Definition format, which contains TSDoc comments describing what it does.
+## Application Scenarios
 
-**Note:** The Obsidian API is still in early alpha and is subject to change at any time!
+1. Automatically save subsribed newsletter and takes note on it.
+2. You can email ideas to yourself and let the plugin collect them into PKM.
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
-- Changes the default font color to red using `styles.css`.
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open Sample Modal" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and output 'click' to the console.
-- Registers a global interval which logs 'setInterval' to the console.
+## Installation - I
 
-## First time developing plugins?
+The plugin relys on Google Gmail API, so you need to first apply an credentials. The flow is a little tedious but not hard actaully.
 
-Quick starting guide for new plugin devs:
+1. Goto https://console.cloud.google.com/ and create a project.
+2. Goto Menu(on top left) > API & Services > Credentials
+3. In Credential page: CREATE CREDENTIALS (top) > Select OAuth client ID
+4. CONIFGURE CONSENT SCREEN
+5. External
+6. Fill whatever you want on the Required(`*`) fields
+7. SAVE AND CONTINUE > SAVE AND CONTINUE > SAVE AND CONTINUE > BACK TO DASHBOARD
+8. Repeat step 2, 3
+9. Select Web application in the application type field
+10. Fill `http://localhost:9999/oauth2callback` in the Redirect URI field.
+  - You can use other ports as long as it's not conflict with your computer's setting. Don't worry, you can always modify later.
+11. Create & download JSON.
+  - The file should contain `client_id`, `client_secret`, and `redirect_uris`
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `main.ts` to `main.js`.
-- Make changes to `main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+__Congrates You Finished the Hard Part__
 
-## Releasing new releases
+## Installation - II
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
+1. Install this plugin manually or through BRAT
+2. Enable the plugin
+3. Fill the absolute path to your credentials.json
+  - For default download loaction the path should be
+    - `/Users/{username}/Downloads/xxxxxxxxx.json`
+4. Click `Setup`
+5. A web window should show up and ask you to login google with email access permission.
+  - I'm pretty sure this app won't mess up with your emails. But you should still keep the credential file secured.
+6. The plugin will automatically query available labels in your Gmail account. Select which one you want fetch emails from and which one you want to add to the mail after it is logged by obsidan.
+7. Assign a Folder to store all the collected email notes. A newsletter folder to use with [DB Folder](https://github.com/RafaelGB/obsidian-db-folder) would be useful.
 
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
+8. Then you are done. Click the ribbon button on left side to fetch all the emails with that label. (The upper limit is 100 mails per click in current design. This one will be an option when the plugin becomes stable.)
 
-## Adding your plugin to the community plugin list
+9. The mails will lie in the folder waiting for you. The emails are converted to markdown format. Some emails may seem weird, but it is alread good enough to me. Thanks to the contrubuters of [Turndown](https://github.com/mixmark-io/turndown).
 
-- Check https://github.com/obsidianmd/obsidian-releases/blob/master/plugin-review.md
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
+10. Each mail will be added a #captured tag. This will also be an option in future releases.
 
-## How to use
+For the From and To labels, I suggest to create two labels for this plugin. One (ReadList in my own case) is asscoicated with Gmail's filter so everything you want to collect will be labeled and move to its own folder. The other label (I use forwared) is used to signify the mail is already be fetched. This plugin assumes these two labels are mutually exclusive.
 
-- Clone this repo.
-- `npm i` or `yarn` to install dependencies
-- `npm run dev` to start compilation in watch mode.
+# Security Issue
 
-## Manually installing the plugin
+While accessing mails with API is convinient and the Google OAuth 2.0 requires you to have credential file and your password(or 2 step auth) to access the API, a local file for convenience may ruin your email account. 
 
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
+This token.json is created automatically in the vault with all the login information so you don't have to login everytime you want to access the API. But it also means that anyone has that file can do whatever he/she wants to your emails. 
 
-## Improve code quality with eslint (optional)
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code. 
-- To use eslint with this project, make sure to install eslint from terminal:
-  - `npm install -g eslint`
-- To use eslint to analyze this project use this command:
-  - `eslint main.ts`
-  - eslint will then create a report with suggestions for code improvement by file and line number.
-- If your source code is in a folder, such as `src`, you can use eslint with this command to analyze all files in that folder:
-  - `eslint .\src\`
-
-
-## API Documentation
-
-See https://github.com/obsidianmd/obsidian-api
+So please don't use this plugin in a shared computer or shared vault. Make use no one can access token.json.

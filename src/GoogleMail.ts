@@ -1,6 +1,7 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 import { OAuth2Client } from 'googleapis-common';
-import { google, gmail_v1 } from 'googleapis';
+import { google, gmail_v1, chat_v1 } from 'googleapis';
+const { authenticate } = require('@google-cloud/local-auth');
 // import { authenticate } from '@google-cloud/local-auth';
 const http = require('http');
 const url = require('url');
@@ -10,6 +11,10 @@ const path = require('path');
 const destroyer = require('server-destroy');
 // Remember to rename these classes and interfaces!
 // const CREDENTIALS_PATH = path.join("/Users/ldchen/Mars/.obsidian/plugins/obsidian-google-mail", 'credentials.json');
+const SCOPES = [
+	'https://www.googleapis.com/auth/gmail.modify'
+]
+
 
 interface gservice {
 	authClient: any;
@@ -27,6 +32,8 @@ interface MyPluginSettings {
 	from_label: string;
 	to_label: string;
 	mail_folder: string;
+	cred_path: string;
+	token_path: string;
 }
 
 
@@ -34,9 +41,7 @@ const DEFAULT_SETTINGS: MyPluginSettings = {
 	gc: {
 		authClient: null,
 		gmail: null,
-		scope: [
-			'https://www.googleapis.com/auth/gmail.modify'
-		],
+		scope: [],
 		refresh_token: ""
 	},
 	client_id: "",
@@ -45,46 +50,48 @@ const DEFAULT_SETTINGS: MyPluginSettings = {
 	credentials_path: "",
 	from_label: "",
 	to_label: "",
-	mail_folder: ""
+	mail_folder: "",
+	cred_path: "",
+	token_path: "./.token.json"
 }
 
 /**
  * Open an http server to accept the oauth callback. In this simple example, the only request to our webserver is to /callback?code=<code>
  */
-async function authenticate(gc: gservice) {
-	console.log("in authentic")
-	return new Promise((resolve, reject) => {
-		// grab the url that will be used for authorization
-		const oauth2Client = gc.authClient
-		const authorizeUrl = oauth2Client.generateAuthUrl({
-			access_type: 'offline',
-			scope: gc.scope.join(' '),
-		});
-		const server = http
-			.createServer(async (req, res) => {
-				try {
-					if (req.url.indexOf('/oauth2callback') > -1) {
-						const qs = new url.URL(req.url, 'http://localhost:9999')
-							.searchParams;
-						res.end('Authentication successful! Please return to the console.');
-						server.destroy();
-						const { tokens } = await oauth2Client.getToken(qs.get('code'));
-						oauth2Client.credentials = tokens; // eslint-disable-line require-atomic-updates
-						gc.refresh_token = oauth2Client.credentials.refresh_token || "" // eslint-disable-line require-atomic-updates
-						resolve(oauth2Client);
-						// return oauth2Client
-					}
-				} catch (e) {
-					reject(e);
-				}
-			})
-			.listen(9999, () => {
-				// open the browser to the authorize url to start the workflow
-				opn(authorizeUrl, { wait: false }).then(cp => cp.unref());
-			});
-		destroyer(server);
-	});
-}
+// async function authenticate(gc: gservice) {
+// 	console.log("in authentic")
+// 	return new Promise((resolve, reject) => {
+// 		// grab the url that will be used for authorization
+// 		const oauth2Client = gc.authClient
+// 		const authorizeUrl = oauth2Client.generateAuthUrl({
+// 			access_type: 'offline',
+// 			scope: gc.scope.join(' '),
+// 		});
+// 		const server = http
+// 			.createServer(async (req, res) => {
+// 				try {
+// 					if (req.url.indexOf('/oauth2callback') > -1) {
+// 						const qs = new url.URL(req.url, 'http://localhost:9999')
+// 							.searchParams;
+// 						res.end('Authentication successful! Please return to the console.');
+// 						server.destroy();
+// 						const { tokens } = await oauth2Client.getToken(qs.get('code'));
+// 						oauth2Client.credentials = tokens; // eslint-disable-line require-atomic-updates
+// 						gc.refresh_token = oauth2Client.credentials.refresh_token || "" // eslint-disable-line require-atomic-updates
+// 						resolve(oauth2Client);
+// 						// return oauth2Client
+// 					}
+// 				} catch (e) {
+// 					reject(e);
+// 				}
+// 			})
+// 			.listen(9999, () => {
+// 				// open the browser to the authorize url to start the workflow
+// 				opn(authorizeUrl, { wait: false }).then(cp => cp.unref());
+// 			});
+// 		destroyer(server);
+// 	});
+// }
 
 async function listLabels(gmail: gmail_v1.Gmail) {
 
@@ -240,16 +247,33 @@ async function loadSavedCredentialsIfExist(settings: MyPluginSettings) {
 	}
 }
 
-async function saveCredentials(settings: MyPluginSettings) {
-	const TOKEN_PATH = path.join(settings.credentials_path, '.token.json');
+// async function saveCredentials(settings: MyPluginSettings) {
+// 	const TOKEN_PATH = path.join(settings.credentials_path, '.token.json');
+// 	const payload = JSON.stringify({
+// 		type: 'authorized_user',
+// 		client_id: settings.client_id,
+// 		client_secret: settings.client_secret,
+// 		refresh_token: settings.gc.authClient.credentials.refresh_token
+// 	});
+// 	await fs.writeFile(TOKEN_PATH, payload);
+// }
+
+async function saveCredentials(client, cred_path, token_path) {
+	const content = await fs.readFile(cred_path);
+	const keys = JSON.parse(content);
+	const key = keys.installed || keys.web;
 	const payload = JSON.stringify({
 		type: 'authorized_user',
-		client_id: settings.client_id,
-		client_secret: settings.client_secret,
-		refresh_token: settings.gc.authClient.credentials.refresh_token
+		client_id: key.client_id,
+		client_secret: key.client_secret,
+		refresh_token: client.credentials.refresh_token,
 	});
-	await fs.writeFile(TOKEN_PATH, payload);
+	console.log("TOKEN:" + token_path)
+	const isExist = await this.app.vault.exists(token_path)
+	await this.app.vault.create(token_path, payload);
+	// await fs.writeFile(token_path, payload);
 }
+
 
 export default class MyPlugin extends Plugin {
 	settings: MyPluginSettings;
@@ -330,21 +354,36 @@ export default class MyPlugin extends Plugin {
 	}
 }
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
 
-	onOpen() {
-		const { contentEl } = this;
-		contentEl.setText('Woah!');
+async function authorize(setting: MyPluginSettings) {
+	let client = await loadSavedCredentialsIfExist(setting);
+	if (client) {
+		return client;
 	}
-
-	onClose() {
-		const { contentEl } = this;
-		contentEl.empty();
+	console.log("PATH=" + setting.cred_path)
+	client = await authenticate({
+		scopes: SCOPES,
+		keyfilePath: setting.cred_path,
+	});
+	if (client.credentials) {
+		await saveCredentials(client, setting.cred_path, setting.token_path);
 	}
+	return client;
 }
+
+
+function setupGserviceConnection(settings: MyPluginSettings) {
+	new Notice("Try to load credential file")
+	console.log(settings)
+	const gc = settings.gc
+	gc.authClient = authorize(settings)
+	gc.gmail = google.gmail({
+		version: 'v1',
+		auth: gc.authClient
+	})
+	new Notice("Finished Login Setting")
+}
+
 
 class SampleSettingTab extends PluginSettingTab {
 	plugin: MyPlugin;
@@ -359,68 +398,23 @@ class SampleSettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 		containerEl.createEl('h2', { text: 'Setup Google OAuth settings' });
-
 		new Setting(containerEl)
-			.setName('Client ID')
-			.setDesc('It\'s a secret')
+			.setName('Credential File')
+			.setDesc('Path to credential file')
 			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.client_id)
+				.setPlaceholder('Enter the path')
+				.setValue(this.plugin.settings.cred_path)
 				.onChange(async (value) => {
-					this.plugin.settings.client_id = value;
+					this.plugin.settings.cred_path = value;
 					await this.plugin.saveSettings();
-				}));
-		new Setting(containerEl)
-			.setName('Client Secret')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.client_secret)
-				.onChange(async (value) => {
-					this.plugin.settings.client_secret = value;
-					await this.plugin.saveSettings();
-				}));
-		new Setting(containerEl)
-			.setName('Authorized redirect URI')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.auth_url)
-				.onChange(async (value) => {
-					this.plugin.settings.auth_url = value;
-					await this.plugin.saveSettings();
-				}));
-		new Setting(containerEl)
-			.setName('Crendential Path')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.credentials_path)
-				.onChange(async (value) => {
-					this.plugin.settings.credentials_path = value;
-					await this.plugin.saveSettings();
-				}));
-		new Setting(containerEl).addButton((cb) => {
-			cb.setButtonText("Login")
-				.setCta()
-				.onClick(() => {
-					console.log("Gmail: Login")
-					const settings = this.plugin.settings
-					const gc = settings.gc
-					gc.authClient = new google.auth.OAuth2(
-						settings.client_id, settings.client_secret, settings.auth_url
-					)
-					gc.gmail = google.gmail({
-						version: 'v1',
-						auth: gc.authClient
-					})
-					authenticate(gc).then(() => {
-						saveCredentials(settings);
-						this.plugin.saveSettings();
-						console.log("Login successful")
-					})
+				})).addButton((cb) => {
+					cb.setButtonText("Setup")
+						.setCta()
+						.onClick(() => {
+							setupGserviceConnection(this.plugin.settings)
+						});
 				});
-		});
+
 		new Setting(containerEl)
 			.setName('>> Mail from label')
 			.setDesc('Labels to fetched from Gmail')

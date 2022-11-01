@@ -1,10 +1,10 @@
 {
-	"id": "obsidian-sample-plugin",
-	"name": "Sample Plugin",
-	"version": "2.0.0",
+	"id": "obsidian-Google-Mail",
+	"name": "Google Mail",
+	"version": "1.0.1",
 	"minAppVersion": "0.15.0",
-	"description": "This is a sample plugin for Obsidian. This plugin demonstrates some of the capabilities of the Obsidian API.",
-	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
+	"description": "It fetches Google Mail as md notes. For note taking on newletters and idea collections.",
+	"author": "Lite C",
+	"authorUrl": "https://github.com/thingnotok",
 	"isDesktopOnly": false
 }

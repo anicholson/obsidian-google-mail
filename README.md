@@ -13,13 +13,16 @@ The plugin use email labels to select which mails to fetch, and a new label will
 The plugin relys on Google Gmail API, so you need to first apply an credentials. The flow is a little tedious but not hard actaully.
 
 1. Goto https://console.cloud.google.com/ and create a project.
+2. Goto Menu(on top left) > API & Services > Enable API & Services
+  - Search and enable gmail api
 2. Goto Menu(on top left) > API & Services > Credentials
 3. In Credential page: CREATE CREDENTIALS (top) > Select OAuth client ID
 4. CONIFGURE CONSENT SCREEN
 5. External
 6. Fill whatever you want on the Required(`*`) fields
 7. SAVE AND CONTINUE > SAVE AND CONTINUE > SAVE AND CONTINUE > BACK TO DASHBOARD
-8. Repeat step 2, 3
+  - There is one page to add test user in one of the steps. Add your own gmail account.
+8. Repeat step 3, 4
 9. Select Web application in the application type field
 10. Fill `http://localhost:9999/oauth2callback` in the Redirect URI field.
   - You can use other ports as long as it's not conflict with your computer's setting. Don't worry, you can always modify later.

@@ -26,7 +26,7 @@ The plugin relys on Google Gmail API, so you need to first apply an credentials.
 11. Create & download JSON.
   - The file should contain `client_id`, `client_secret`, and `redirect_uris`
 
-__Congrates You Finished the Hard Part__
+__Congrates You Have Finished the Hard Part__
 
 ## Installation - II
 

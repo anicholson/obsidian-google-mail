@@ -36,6 +36,7 @@ __🎉 Congratulation You Have Finished the Hard Part 🙌__
 ## Installation - II
 
 1. Install this plugin manually or through BRAT
+    - Add https://github.com/thingnotok/obsidian-google-mail
 2. Enable the plugin
 3. Fill the absolute path to your credentials.json
   - For default download loaction the path should be

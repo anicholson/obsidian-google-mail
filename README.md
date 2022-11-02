@@ -12,6 +12,8 @@ The plugin use email labels to select which mails to fetch, and a new label will
 
 The plugin relys on Google Gmail API, so you need to first apply an credentials. The flow is a little tedious but not hard actaully.
 
+This flow may still confusing to non-coder people, so let me know if you have trouble setting these up. I'm also thinking about offering people to use my credentials to access Gmail (still your gmail account, but you don't need to go through this part), but I'm not sure how much will it cost if too many people are using it. Currently I have 100 test user quota to offer, let me know (leave a issue, or thingnotok_at_gmail.com) if you want to have this little trial run with me.
+
 1. Goto https://console.cloud.google.com/ and create a project.
 2. Goto Menu(on top left) > API & Services > Enable API & Services
   - Search and enable gmail api
@@ -29,11 +31,12 @@ The plugin relys on Google Gmail API, so you need to first apply an credentials.
 11. Create & download JSON.
   - The file should contain `client_id`, `client_secret`, and `redirect_uris`
 
-__Congrates You Have Finished the Hard Part__
+__🎉 Congratulation You Have Finished the Hard Part 🙌__
 
 ## Installation - II
 
 1. Install this plugin manually or through BRAT
+    - Add https://github.com/thingnotok/obsidian-google-mail
 2. Enable the plugin
 3. Fill the absolute path to your credentials.json
   - For default download loaction the path should be
@@ -59,3 +62,10 @@ While accessing mails with API is convinient and the Google OAuth 2.0 requires y
 This token.json is created automatically in the vault with all the login information so you don't have to login everytime you want to access the API. But it also means that anyone has that file can do whatever he/she wants to your emails. 
 
 So please don't use this plugin in a shared computer or shared vault. Make use no one can access token.json.
+
+# Thanks
+
+The plugin originates from [u/egauthier64](https://www.reddit.com/r/ObsidianMD/comments/yjiq4f/comment/iuqr10u/?context=3)'s email-to-obsidian idea and this one is an approach based on Gmail server. For the Google API part, I would like to thank [YukiGasai](https://github.com/YukiGasai/obsidian-google-tasks/commits?author=YukiGasai) for his great work on Google series plugins for obsidian and I learn a lot from his implementation. Please check his awesome plugins here, they are extremely useful with google suite and obsidian:
+
+- [obsidian-google-calendar](https://github.com/YukiGasai/obsidian-google-calendar): View the google calender and add/delete events from obsidian.
+- [obsidian-google-task](https://github.com/YukiGasai/obsidian-google-tasks): Allow you to see and manipulate google tasks from obsidian.

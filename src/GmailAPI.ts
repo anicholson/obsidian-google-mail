@@ -10,10 +10,10 @@ export function createGmailConnect(client) {
 }
 
 
-export async function listLabels(gmail: gmail_v1.Gmail) {
+export async function listLabels(account: string, gmail: gmail_v1.Gmail) {
 
     const res = await gmail.users.labels.list({
-        userId: 'me'
+        userId: account
     });
     const labels = res.data.labels;
     if (!labels || labels.length === 0) {
@@ -39,9 +39,9 @@ async function getLabelIDbyName(name: string, gmail: gmail_v1.Gmail) {
     return result_id;
 }
 
-async function saveMail(folder: string, gmail: gmail_v1.Gmail, id: string) {
+async function saveMail(account: string, folder: string, gmail: gmail_v1.Gmail, id: string) {
     const res = await gmail.users.threads.get({
-        userId: 'me',
+        userId: account,
         id: id,
         format: 'full'
     });
@@ -56,18 +56,18 @@ async function saveMail(folder: string, gmail: gmail_v1.Gmail, id: string) {
     // await fs.writeFile(TOKEN_PATH, txt);
 }
 
-async function fetchMailList(labelID: string, gmail: gmail_v1.Gmail) {
+async function fetchMailList(account: string, labelID: string, gmail: gmail_v1.Gmail) {
     const res = await gmail.users.threads.list({
-        userId: 'me',
+        userId: account,
         labelIds: [labelID],
         maxResults: 100
     });
     return res.data.threads;
 }
 
-async function updateLabel(from_labelID: string, to_labelID: string, id: string, gmail: gmail_v1.Gmail) {
+async function updateLabel(account: string, from_labelID: string, to_labelID: string, id: string, gmail: gmail_v1.Gmail) {
     const res = await gmail.users.threads.modify({
-        userId: 'me',
+        userId: account,
         id: id,
         requestBody: {
             addLabelIds: [to_labelID],
@@ -84,17 +84,17 @@ async function mkdirP(path: string) {
     }
 }
 
-export async function fetchMails(fromID: string, toID: string, base_folder: string, gmail: gmail_v1.Gmail) {
+export async function fetchMails(account: string, fromID: string, toID: string, base_folder: string, gmail: gmail_v1.Gmail) {
     new Notice('Start Fetch Mail');
     await mkdirP(base_folder)
-    const threads = await fetchMailList(fromID, gmail) || []
+    const threads = await fetchMailList(account, fromID, gmail) || []
     console.log(threads);
     for (let i = 0; i < threads.length; i++) {
         if (i % 10 == 0)
             new Notice(`Fetching Mail ${i} /${threads.length}`);
         const id = threads[i].id || ""
-        await saveMail(base_folder, gmail, id);
-        await updateLabel(fromID, toID, id, gmail);
+        await saveMail(account, base_folder, gmail, id);
+        await updateLabel(account, fromID, toID, id, gmail);
     }
     new Notice('End Fetch Mail');
 }

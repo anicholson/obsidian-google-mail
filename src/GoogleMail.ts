@@ -26,6 +26,7 @@ interface ObsGMailSettings {
 	cred_path: string;
 	token_path: string;
 	labels: Array<Array<string>>;
+	mail_account: string;
 }
 
 const DEFAULT_SETTINGS: ObsGMailSettings = {
@@ -44,7 +45,8 @@ const DEFAULT_SETTINGS: ObsGMailSettings = {
 	mail_folder: "",
 	cred_path: "",
 	token_path: "/.obsidian/plugins/obsidian-google-mail/.token.json",
-	labels: [[]]
+	labels: [[]],
+	mail_account: ""
 }
 
 
@@ -58,6 +60,7 @@ export default class ObsGMail extends Plugin {
 		const ribbonIconEl = this.addRibbonIcon('sheets-in-box', 'gmail fetch',
 			(evt: MouseEvent) => {
 				fetchMails(
+					this.settings.mail_account,
 					this.settings.from_label,
 					this.settings.to_label,
 					this.settings.mail_folder,
@@ -70,7 +73,7 @@ export default class ObsGMail extends Plugin {
 			id: 'Gmail-Fetch',
 			name: 'Gmail-Fetch',
 			callback: () => {
-				listLabels(this.settings.gc.gmail).then((labels: string[][]) => {
+				listLabels(this.settings.mail_account, this.settings.gc.gmail).then((labels: string[][]) => {
 					console.log(labels);
 				})
 			}

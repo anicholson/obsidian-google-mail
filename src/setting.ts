@@ -8,7 +8,7 @@ export function draw_settingtab(settingTab) {
 	containerEl.empty();
 	containerEl.createEl('h2', { text: 'Setup Google OAuth settings' });
 	new Setting(containerEl)
-		.setName('Path of Credential File')
+		.setName('Credential Content')
 		.setDesc('Absolut Path to credential file, the file can be placed outside of vault. But addtional permission is required. (on macOS)')
 		.addText(text => text
 			.setPlaceholder('Enter the path')
@@ -23,6 +23,17 @@ export function draw_settingtab(settingTab) {
 						setupGserviceConnection(plugin.settings).then(() => { settingTab.display(); })
 					});
 			});
+
+	new Setting(containerEl)
+		.setName("Gmail Account")
+		.setDesc('email account to fetch mails')
+		.addText(text => text
+			.setPlaceholder('xxx@gmail.com')
+			.setValue(plugin.settings.mail_account)
+			.onChange(async (value) => {
+				plugin.settings.mail_account = value;
+				await plugin.saveSettings();
+			}));
 
 	new Setting(containerEl)
 		.setName('>> Mail from label')

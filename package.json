@@ -3,9 +3,6 @@
 	"version": "1.1.0",
 	"description": "It fetches Google Mail as md notes. For note taking on newletters and idea collections.",
 	"main": "main.js",
-	"scripts": {
-		"release": "standard-version"
-	},
 	"keywords": [],
 	"author": "",
 	"license": "MIT",

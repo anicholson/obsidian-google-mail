@@ -9,6 +9,14 @@ export function createGmailConnect(client) {
     })
 }
 
+export async function getMailAccount(gmail: gmail_v1.Gmail) {
+    const res = await gmail.users.getProfile({
+        userId: 'me'
+    });
+    const mail_address = res.data.emailAddress;
+    return mail_address;
+}
+
 
 export async function listLabels(account: string, gmail: gmail_v1.Gmail) {
 

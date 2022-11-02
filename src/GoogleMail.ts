@@ -19,11 +19,10 @@ interface ObsGMailSettings {
 	client_id: string;
 	client_secret: string;
 	auth_url: string;
-	credentials_path: string;
+	credentials: string;
 	from_label: string;
 	to_label: string;
 	mail_folder: string;
-	cred_path: string;
 	token_path: string;
 	labels: Array<Array<string>>;
 	mail_account: string;
@@ -39,11 +38,10 @@ const DEFAULT_SETTINGS: ObsGMailSettings = {
 	client_id: "",
 	client_secret: "",
 	auth_url: "",
-	credentials_path: "",
+	credentials: "",
 	from_label: "",
 	to_label: "",
-	mail_folder: "",
-	cred_path: "",
+	mail_folder: "fetchedMail",
 	token_path: "/.obsidian/plugins/obsidian-google-mail/.token.json",
 	labels: [[]],
 	mail_account: ""

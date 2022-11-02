@@ -1,14 +1,14 @@
 import { Notice } from 'obsidian';
 import { google } from 'googleapis';
-import { listLabels } from 'src/GmailAPI';
-import { OAuth2Client } from 'google-auth-library';
+import { listLabels, getMailAccount } from 'src/GmailAPI';
 const http = require('http');
 const url = require('url');
 const opn = require('open');
 const destroyer = require('server-destroy');
 
 const SCOPES = [
-    'https://www.googleapis.com/auth/gmail.modify'
+    'https://www.googleapis.com/auth/gmail.modify',
+    'https://www.googleapis.com/auth/userinfo.email'
 ]
 // @ts-ignore
 export async function loadSavedCredentialsIfExist(settings: ObsGMailSettings) {
@@ -20,9 +20,8 @@ export async function loadSavedCredentialsIfExist(settings: ObsGMailSettings) {
     }
 }
 
-async function saveCredentials(client: any, cred_path: string, token_path: string) {
-    const content = cred_path;
-    const keys = JSON.parse(content);
+async function saveCredentials(client: any, credentials: string, token_path: string) {
+    const keys = JSON.parse(credentials);
     const key = keys.installed || keys.web;
     const payload = JSON.stringify({
         type: 'authorized_user',
@@ -36,6 +35,12 @@ async function saveCredentials(client: any, cred_path: string, token_path: strin
 
 }
 
+function getPortFromURI(uri: string): number {
+    const mat = uri.match(/:(?<port>[0-9]+)/m) || []
+    console.log(mat[1])
+    return Number(mat[1])
+}
+
 async function my_authenticate(scopes: Array<string>, credentials: string) {
     const keys = JSON.parse(credentials).web
     console.log(keys)
@@ -45,7 +50,7 @@ async function my_authenticate(scopes: Array<string>, credentials: string) {
         keys.redirect_uris[0]
     );
     const redirect_uri = keys.redirect_uris[0]
-    const ListenPort = redirect_uri.split(':')[1]
+    const ListenPort = getPortFromURI(redirect_uri)
     return new Promise((resolve, reject) => {
         // grab the url that will be used for authorization
         const authorizeUrl = oauth2Client.generateAuthUrl({
@@ -82,30 +87,29 @@ async function authorize(setting: ObsGMailSettings) {
     if (client) {
         return client;
     }
-    console.log("Start Auth")
-    console.log(setting.cred_path)
     // @ts-ignore
-    client = await my_authenticate(SCOPES, setting.cred_path)
+    client = await my_authenticate(SCOPES, setting.credentials)
+    console.log(client);
     // @ts-ignore
     if (client.credentials) {
-        await saveCredentials(client, setting.cred_path, setting.token_path);
+        await saveCredentials(client, setting.credentials, setting.token_path);
     }
     return client;
 }
 
 // @ts-ignore
 export async function setupGserviceConnection(settings: ObsGMailSettings) {
-    const cred_path = "/.obsidian/plugins/obsidian-google-mail/.cred.json"
-    const keys = JSON.parse(settings.cred_path);
-    const key = keys.installed || keys.web;
-    await this.app.vault.writeJson(cred_path, key)
-    console.log('after create')
+    // const cred_path = "/.obsidian/plugins/obsidian-google-mail/.cred.json"
+    // const keys = JSON.parse(settings.credentials);
+    // const key = keys.installed || keys.web;
+    // await this.app.vault.writeJson(cred_path, key)
     const gc = settings.gc
     gc.authClient = await authorize(settings)
     gc.gmail = google.gmail({
         version: 'v1',
         auth: gc.authClient
     })
+    settings.mail_account = await getMailAccount(gc.gmail)
     settings.labels = await listLabels(settings.mail_account, gc.gmail) || [[]]
     new Notice("Finished Login Setting")
 }

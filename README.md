@@ -22,25 +22,26 @@ __Use my credential__ : I have a credential for 100 users and would like to know
 
 1. Goto https://console.cloud.google.com/ to create credentials. 
 
-	- The detail steps in text can be found [here](get-cred.md)
-
-
-
-__🎉 Congratulation You Have Finished the Hard Part 🙌__
+	- The detail steps with video can be found [here](get-cred.md)
 
 ## Installation - II
 
 1. Install this plugin manually or through BRAT
     - Add https://github.com/thingnotok/obsidian-google-mail
 2. Enable the plugin, and click option (or open the seting panel of this plugin)
-3. Click `Setup` button and Paste content of credential.json
+3. Click `Setup` button and Paste content from credential.json ([from installation I](#installation---i))
 4. A web window should show up and ask you to login google with email access permission.
-    - Don't worry, this app won't mess up with your emails. But you should still keep the credential file secured.
-5. The plugin will automatically query available labels in your Gmail account. Select which one you want fetch emails from and which one you want to add to the mail after it is logged by obsidan.
+5. The plugin will automatically query available labels in your Gmail account. Select the from/to labels to fetch.
+
+	- From: Label to fetch from Gmail. 
+	- To: Fetched mail will be added with this label
+	
 6. Assign a Folder to store all the collected email notes. (Default is "Mail")
-    - The plugin will create a folder if not exists. Since the plugin can manipulate the files in the folder, it's better not to use existing folders.
-    - A newsletter folder to use with [DB Folder](https://github.com/RafaelGB/obsidian-db-folder) would be useful to organize your mails.
-7. Then you are done. Click the ribbon button on left side to fetch all the emails with that label. 
+
+    - The plugin will create a folder if not exists.
+    - A newsletter folder to use with [DB Folder](https://github.com/RafaelGB/obsidian-db-folder) would be useful to organize your mail notes.
+	
+7. Click the ribbon button on left side to fetch all the emails with that label. 
 
 ## Setup in Gmail
 
@@ -71,12 +72,9 @@ __Another approach__ is that if you use this plugin for "newsletters" and "send 
 
 # Other details
 
-- The upper limit is 100 mails per click in current design. This one will be an option when the plugin becomes stable.
-  - https://github.com/thingnotok/obsidian-google-mail/issues/2
 - The mails are converted to markdown format. Some emails may seem weird, but it is alread good enough to me now. 
   - Thanks to the contrubuters of [Turndown](https://github.com/mixmark-io/turndown).
-- Each mail will be added with the #captured tag. This will also be an option in future releases. 
-  - Check https://github.com/thingnotok/obsidian-google-mail/issues/1
+  - I will add support to save email in plaintext format. Plaintext is suited for note-taking and avoid most of weidly large images in the note.
 
 
 # Thanks

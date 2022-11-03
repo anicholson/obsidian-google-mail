@@ -11,6 +11,9 @@ export default class ObsGMail extends Plugin {
 	async onload() {
 		await this.loadSettings();
 
+		if (this.settings.fetch_on_load)
+			fetchMailAction(this.settings)
+
 		// This creates an icon in the left ribbon.
 		const ribbonIconEl = this.addRibbonIcon('sheets-in-box', 'gmail fetch',
 			(evt: MouseEvent) => {

@@ -20,6 +20,8 @@ export interface ObsGMailSettings {
 	token_path: string;
 	labels: Array<Array<string>>;
 	mail_account: string;
+	fetch_amount: number;
+	fetch_on_load: boolean;
 }
 
 export const DEFAULT_SETTINGS: ObsGMailSettings = {
@@ -35,7 +37,9 @@ export const DEFAULT_SETTINGS: ObsGMailSettings = {
 	mail_folder: "fetchedMail",
 	token_path: "plugins/obsidian-google-mail/.token",
 	labels: [[]],
-	mail_account: ""
+	mail_account: "",
+	fetch_amount: 25,
+	fetch_on_load: false
 }
 
 export class ExampleModal extends Modal {
@@ -189,5 +193,26 @@ export function draw_settingtab(settingTab) {
 					settings.mail_folder = value;
 					await plugin.saveSettings();
 				}));
+		new Setting(containerEl)
+			.setName('Fetch Amount')
+			.setDesc('How many email to fetch per action')
+			.addText(text => text
+				.setPlaceholder('default is 25')
+				.setValue(String(settings.fetch_amount))
+				.onChange(async (value) => {
+					settings.fetch_amount = parseInt(value);
+					await plugin.saveSettings();
+				}));
+		new Setting(containerEl)
+			.setName('Fetch on load')
+			.setDesc('Whether to run fetch on Obsidian Start')
+			.addToggle((cb) => {
+				cb.setValue(settings.fetch_on_load)
+				cb.onChange(async (value) => {
+					settings.fetch_on_load = value
+					await plugin.saveSettings();
+				})
+
+			})
 	}
 }

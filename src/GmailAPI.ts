@@ -23,6 +23,7 @@ export async function fetchMailAction(settings: ObsGMailSettings) {
                 settings.from_label,
                 settings.to_label,
                 settings.mail_folder,
+                settings.fetch_amount,
                 settings.gc.gmail);
         })
     }
@@ -115,16 +116,25 @@ async function mkdirP(path: string) {
     }
 }
 
-async function fetchMails(account: string, fromID: string, toID: string, base_folder: string, gmail: gmail_v1.Gmail) {
+async function fetchMails(account: string, fromID: string, toID: string, base_folder: string, amount: number, gmail: gmail_v1.Gmail) {
     new Notice('Gmail: Fetch starting');
     await mkdirP(base_folder)
     const threads = await fetchMailList(account, fromID, gmail) || []
-    for (let i = 0; i < threads.length; i++) {
-        if (i % 10 == 0)
-            new Notice(`Gmail: ${i / threads.length * 100}% fetched`);
+    if (threads.length == 0) {
+        new Notice(`Gmail: Your inbox is up to date`);
+        return
+    }
+    const len = Math.min(threads.length, amount)
+    for (let i = 0; i < len; i++) {
+        if (i % 5 == 0 && i > 0)
+            new Notice(`Gmail: ${(i / len * 100).toFixed(0)}% fetched`);
         const id = threads[i].id || ""
         await saveMail(account, base_folder, gmail, id);
         await updateLabel(account, fromID, toID, id, gmail);
     }
-    new Notice(`Gmail: ${threads.length} mails fetched.`);
+    new Notice(`Gmail: ${len} mails fetched.`);
+    if (threads.length > amount)
+        new Notice(`Gmail: There are ${threads.length - amount} mails not fetched.`);
+    else
+        new Notice(`Gmail: Your inbox is up to date`);
 }

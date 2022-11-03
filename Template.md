@@ -50,7 +50,7 @@ All the header fields can be placed in email notes. But only the main attributes
 |14| ${From}| => "Gamma Official <info@gamma.to>"}|
 |15| ${Mime-Versio|}" => "1.0"}|
 |16| ${Message-I|}" => "<dNrNP-U_RS-xO2mT6YnJ8g@geopod-ismtpd-3-0>"}|
-|17| ${Subject}| => "AMZN, SHOP, PINS, INMD Q3’22 財報分析 - Gamma Official"}|
+|17| ${Subject}| => "Mail Title"}|
 |18| ${X-Feedbac|-ID}" => "8114705:SG"}|
 |19| ${X-S|-EID}" => "Cyi5gbrsWqIpgDix8/xPt+lhibP7tdtTAgh9FyMJjZmyNpNmCpIjaWyS174fhiY1gvB3rDfLZqj6D01bg76gbetKJMzfaWUPbjViz/sd4j5En52xB89XpCqYzKUQ1sOl9VvS91aF8p9ikMk/uyfauUOHmbzab6WEYDXzy92y6yR+z7CcNZu0apKQ3E83wONGr3jWJnhFduVSOs531IHY8aTZTmlUrBhUkU8DdY4rCp5pd8Hu4bSxOhXPGPssBjlq"}|
 |20| ${To}| => "Lite Chen <user@gmail.com>"}|

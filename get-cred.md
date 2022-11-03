@@ -25,17 +25,20 @@ https://user-images.githubusercontent.com/29173832/199786096-b1473d12-868f-4495-
 
 3. Goto Menu(on top left) > API & Services > Credentials
 
-  1. In Credential page: CREATE CREDENTIALS (top) > Select OAuth client ID
-  2. Select Web application in the application type field
-  3. Fill `http://localhost:9999/oauth2callback` in the Redirect URI field.
+	  1. In Credential page: CREATE CREDENTIALS (top) > Select OAuth client ID
+	  2. Select Web application in the application type field
+	  3. Fill `http://localhost:9999/oauth2callback` in the Redirect URI field.
 
       - You can use other ports as long as it's not conflict with your computer's setting. Don't worry, you can always modify later.
 
 https://user-images.githubusercontent.com/29173832/199786379-50db8320-c6cd-4fb5-8af5-3938947deb1a.mp4
+
 https://user-images.githubusercontent.com/29173832/199787005-0fb12dfe-5544-45f8-b7f6-ba8da2c44fc6.mp4
 
 
 4. Create & download JSON.
 
     - The file should contain `client_id`, `client_secret`, and `redirect_uris`
+
+
 __🎉 Congratulation You Have Finished the Hard Part 🙌__

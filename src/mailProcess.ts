@@ -2,7 +2,9 @@ import { request } from 'obsidian';
 const TurndownService = require('turndown')
 const turndownService = new TurndownService()
 // @ts-ignore
-export async function getMailTitle(title_candidates) {
+
+
+async function getMailTitle(title_candidates) {
     let title = findTitle(title_candidates)
     title = formatTitle(title)
     return title
@@ -110,7 +112,7 @@ export function appendPrefix(prefix: string, text: string) {
     return prefix + text
 }
 
-function formatTitle(title: string) {
+export function formatTitle(title: string) {
     title = title.replace(/[/<>:"\\|?*]/g, "-")
     return title
 }

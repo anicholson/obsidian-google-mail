@@ -1,6 +1,6 @@
 import { Notice } from 'obsidian';
 import { google, gmail_v1 } from 'googleapis';
-import { getMailTitle, processMailBody, incr_filename, appendPrefix } from 'src/mailProcess';
+import { formatTitle, processMailBody, incr_filename, appendPrefix } from 'src/mailProcess';
 import { ObsGMailSettings } from 'src/setting';
 import { authorize } from 'src/GOauth';
 // @ts-ignore
@@ -11,20 +11,12 @@ export function createGmailConnect(client) {
     })
 }
 
-
 export async function fetchMailAction(settings: ObsGMailSettings) {
-    // console.log("Start Fetch")
-    // console.log(settings)
+
     if (settings.gc.gmail) {
         // console.log("gmail instance exist");
         await authorize(settings).then(() => {
-            fetchMails(
-                settings.mail_account,
-                settings.from_label,
-                settings.to_label,
-                settings.mail_folder,
-                settings.fetch_amount,
-                settings.gc.gmail);
+            fetchMails(settings);
         })
     }
     else {
@@ -70,7 +62,37 @@ async function getLabelIDbyName(name: string, gmail: gmail_v1.Gmail) {
     return result_id;
 }
 
-async function saveMail(account: string, folder: string, gmail: gmail_v1.Gmail, id: string) {
+function fillTemplate(template: string, mail: Map<string, string>) {
+    const string = template.replace(
+        /\${\w+}/g,
+        function (all) {
+            return mail.get(all) || '';
+        });
+    return string
+}
+
+function getFields(ary: Array<{ name: string, value: string }>) {
+    const m = new Map<string, string>()
+    ary.forEach((item) => {
+        m.set("${" + item.name + "}", item.value)
+    })
+    return m
+}
+
+function getLabelName(id: string, labels: Array<Array<string>>) {
+    for (let i = 0; i < labels.length; i++)
+        if (id == labels[i][1])
+            return labels[i][0]
+    return ""
+}
+function formatDate(iso_date: string) {
+    const d = new Date(iso_date);
+    return d.toISOString().split('T')[0]
+}
+async function saveMail(settings: ObsGMailSettings, id: string) {
+    const gmail = settings.gc.gmail
+    const account = settings.mail_account
+    const folder = settings.mail_folder
     const res = await gmail.users.threads.get({
         userId: account,
         id: id,
@@ -78,13 +100,19 @@ async function saveMail(account: string, folder: string, gmail: gmail_v1.Gmail, 
     });
     console.log("Get staus: " + res.status);
     const title_candidates = ((res.data.messages || [])[0].payload?.headers || [])
-    let title = await getMailTitle(title_candidates)
+    const labelIDs = (res.data.messages || [])[0].labelIds;
+    const labels = labelIDs.map((labelID: string) => getLabelName(labelID, settings.labels))
+    const fields = getFields(title_candidates)
+    fields.set('${Date}', formatDate(fields.get('${Date}') || ""))
+    fields.set('${Labels}', labels.map((label: string) => `[[${label}]]`).join(', '))
+    let title = formatTitle(fields.get('${Subject}') || "")
     title = await incr_filename(title, folder)
-    // const TOKEN_PATH = path.join(folder, `${ title }.md`);
-    let txt = await processMailBody(res)
-    txt = appendPrefix("tags:: #captured\n", txt)
-    await this.app.vault.create(folder + "/" + `${title}.md`, txt)
-    // await fs.writeFile(TOKEN_PATH, txt);
+    let body = await processMailBody(res)
+    fields.set('${Body}', body)
+    fields.set('${Link}', `https://mail.google.com/mail/#all/${id}`)
+    const template = await this.app.vault.readRaw(settings.template)
+    const content = fillTemplate(template, fields)
+    await this.app.vault.create(folder + "/" + `${title}.md`, content)
 }
 
 async function fetchMailList(account: string, labelID: string, gmail: gmail_v1.Gmail) {
@@ -116,7 +144,14 @@ async function mkdirP(path: string) {
     }
 }
 
-async function fetchMails(account: string, fromID: string, toID: string, base_folder: string, amount: number, gmail: gmail_v1.Gmail) {
+async function fetchMails(settings: ObsGMailSettings) {
+    const account = settings.mail_account;
+    const fromID = settings.from_label;
+    const toID = settings.to_label;
+    const base_folder = settings.mail_folder;
+    const amount = settings.fetch_amount;
+    const gmail = settings.gc.gmail;
+
     new Notice('Gmail: Fetch starting');
     await mkdirP(base_folder)
     const threads = await fetchMailList(account, fromID, gmail) || []
@@ -129,7 +164,7 @@ async function fetchMails(account: string, fromID: string, toID: string, base_fo
         if (i % 5 == 0 && i > 0)
             new Notice(`Gmail: ${(i / len * 100).toFixed(0)}% fetched`);
         const id = threads[i].id || ""
-        await saveMail(account, base_folder, gmail, id);
+        await saveMail(settings, id);
         await updateLabel(account, fromID, toID, id, gmail);
     }
     new Notice(`Gmail: ${len} mails fetched.`);

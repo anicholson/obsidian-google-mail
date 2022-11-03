@@ -17,6 +17,7 @@ export interface ObsGMailSettings {
 	from_label: string;
 	to_label: string;
 	mail_folder: string;
+	template: string;
 	token_path: string;
 	labels: Array<Array<string>>;
 	mail_account: string;
@@ -34,6 +35,7 @@ export const DEFAULT_SETTINGS: ObsGMailSettings = {
 	credentials: "",
 	from_label: "",
 	to_label: "",
+	template: "",
 	mail_folder: "fetchedMail",
 	token_path: "plugins/obsidian-google-mail/.token",
 	labels: [[]],
@@ -113,8 +115,8 @@ async function logout(settings: ObsGMailSettings, Tab: ObsGMailSettingTab) {
 	})
 }
 
-// @ts-ignore
-export function draw_settingtab(settingTab) {
+
+export async function draw_settingtab(settingTab: ObsGMailSettingTab) {
 	const plugin = settingTab.plugin;
 	const { containerEl } = settingTab;
 	const settings = plugin.settings;
@@ -133,7 +135,7 @@ export function draw_settingtab(settingTab) {
 	});
 
 	// Only Render the following sections when user is logined
-	if (async () => { checkToken(settings) }) {
+	if (await checkToken(settings.token_path)) {
 		profile_section.addButton((cb) => {
 			cb.setButtonText("logout")
 				.setCta()
@@ -150,8 +152,8 @@ export function draw_settingtab(settingTab) {
 				.setDisabled(true)
 			);
 		new Setting(containerEl)
-			.setName('>> Mail from label')
-			.setDesc('Labels to fetched from Gmail').addDropdown(
+			.setName('Labels [From/To]')
+			.setDesc('Labels to fetch from/ Labels to assign').addDropdown(
 				(cb) => {
 					if (settings.labels.length > 0)
 						// @ts-ignore
@@ -165,10 +167,7 @@ export function draw_settingtab(settingTab) {
 						await plugin.saveSettings();
 					})
 				}
-			)
-		new Setting(containerEl)
-			.setName('Mail to label >>')
-			.setDesc('Labels to fetched from Gmail').addDropdown(
+			).addDropdown(
 				(cb) => {
 					if (settings.labels.length > 0)
 						// @ts-ignore
@@ -185,12 +184,22 @@ export function draw_settingtab(settingTab) {
 			)
 		new Setting(containerEl)
 			.setName('Mail Folder')
-			.setDesc('folder to store mail notes')
+			.setDesc('Folder to save mail notes')
 			.addText(text => text
-				.setPlaceholder('Relative path in vault')
+				.setPlaceholder('/Folder/')
 				.setValue(settings.mail_folder)
 				.onChange(async (value) => {
 					settings.mail_folder = value;
+					await plugin.saveSettings();
+				}));
+		new Setting(containerEl)
+			.setName('Mail Note Template')
+			.setDesc("Please check document for available mail attributes")
+			.addText(text => text
+				.setPlaceholder('/Folder/template.md')
+				.setValue(settings.template)
+				.onChange(async (value) => {
+					settings.template = value;
 					await plugin.saveSettings();
 				}));
 		new Setting(containerEl)
@@ -213,6 +222,40 @@ export function draw_settingtab(settingTab) {
 					await plugin.saveSettings();
 				})
 
+			})
+		new Setting(containerEl)
+			.setName('Validation')
+			.setDesc('Help you validate settins')
+			.addButton((cb) => {
+				cb.setCta();
+				cb.setIcon('checkmark');
+				cb.onClick(async (cb) => {
+					let checked = true;
+					if (!await this.app.vault.exists(settings.template)) {
+						new Notice('Template file not exists.');
+						settings.template = "";
+						checked = false;
+					}
+					if (settings.from_label == settings.to_label) {
+						new Notice('From and To labels can not be the same.')
+						let idx = 0
+						for (let i = 0; i < settings.labels.length; i++) {
+							if (settings.labels[i][0] == settings.from_label) {
+								idx = i + 1;
+								break;
+							}
+						}
+						if (idx == settings.labels.length - 1)
+							idx = 0;
+						settings.to_label = settings.labels[idx][0];
+						checked = false;
+					}
+					if (checked) {
+						new Notice('All Clear!')
+					}
+					await plugin.saveSettings();
+					settingTab.display();
+				})
 			})
 	}
 }

@@ -32,8 +32,9 @@ export async function removeToken(path: string) {
 export async function checkToken(path: string) {
     path = '/.obsidian/' + path + '.json';
     // console.log("check:" + path)
-    if (await this.app.vault.exists(path))
+    if (await this.app.vault.exists(path)) {
         return true;
+    }
     return false;
 }
 

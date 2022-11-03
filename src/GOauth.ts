@@ -39,6 +39,7 @@ export async function checkToken(path: string) {
 }
 
 async function saveCredentials(client: any, credentials: any, token_path: string) {
+    // console.log(client.credentials)
     const keys = JSON.parse(credentials);
     const key = keys.installed || keys.web;
     const payload = {
@@ -71,6 +72,7 @@ async function my_authenticate(scopes: Array<string>, credentials: string) {
         const authorizeUrl = oauth2Client.generateAuthUrl({
             access_type: 'offline',
             scope: scopes.join(' '),
+            prompt: "consent"
         });
         if (server_.listening) {
             console.log("Sercer is listening on port, Destroy before create")
@@ -105,6 +107,7 @@ export async function authorize(setting: ObsGMailSettings) {
     let client = await loadSavedCredentialsIfExist(setting);
     if (!client) {
         // @ts-ignore
+        // console.log("token failed")
         client = await my_authenticate(SCOPES, setting.credentials)
         if (server_.listening)
             server_.destroy();

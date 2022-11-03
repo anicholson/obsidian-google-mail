@@ -7,6 +7,12 @@ This plugin save emails on Gmail as markdown notes. Use this plugin [safely](#se
 1. Automatically save subsribed newsletter and takes note on it.
 2. You can email ideas to yourself and let the plugin collect them into vault.
 
+
+
+https://user-images.githubusercontent.com/29173832/199773312-3f501499-64aa-419b-b4fe-c6303b9e53fd.mov
+
+
+
 ## Installation - I
 
 __Already have a credential__ : If you're using google api in other [plugins](#thanks) you can simple enable the Gmail api for that project, then you can reuse the credential.
@@ -67,6 +73,10 @@ __Filters__:
   - Check the [tutorial here](https://support.google.com/mail/answer/6579?hl=en#zippy=%2Ccreate-a-filter%2Cedit-or-delete-filters).
   - Add the newletters so you can take notes on them
   - Add the mails you send to yourself, so you can achieve "email to obsidian".
+  
+## Template
+
+Check [Template](Template.md) to learn how to setup a note template for email notes.
 
 # Security Issue
 

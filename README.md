@@ -38,9 +38,7 @@ __🎉 Congratulation You Have Finished the Hard Part 🙌__
 1. Install this plugin manually or through BRAT
     - Add https://github.com/thingnotok/obsidian-google-mail
 2. Enable the plugin
-3. Fill the absolute path to your credentials.json
-  - For default download loaction the path should be
-    - `/Users/{username}/Downloads/xxxxxxxxx.json`
+3. Copy and paste the content of the credentials content in the field.
 4. Click `Setup`
 5. A web window should show up and ask you to login google with email access permission.
   - I'm pretty sure this app won't mess up with your emails. But you should still keep the credential file secured.

@@ -36,7 +36,7 @@ __Use my credential__ : I have a credential for 100 users and would like to know
 	- From: Label to fetch from Gmail. 
 	- To: Fetched mail will be added with this label
 	
-6. Assign a Folder to store all the collected email notes. (Default is "Mail")
+6. Assign a Folder to store all the collected email notes. (Default is "fetchedMail")
 
     - The plugin will create a folder if not exists.
     - A newsletter folder to use with [DB Folder](https://github.com/RafaelGB/obsidian-db-folder) would be useful to organize your mail notes.

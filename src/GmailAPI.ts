@@ -87,7 +87,7 @@ async function saveMail(account: string, folder: string, gmail: gmail_v1.Gmail, 
 }
 
 async function fetchMailList(account: string, labelID: string, gmail: gmail_v1.Gmail) {
-    console.log(gmail)
+    // console.log(gmail)
     const res = await gmail.users.threads.list({
         userId: account,
         labelIds: [labelID],

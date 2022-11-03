@@ -1,6 +1,8 @@
 import { Notice } from 'obsidian';
 import { google, gmail_v1 } from 'googleapis';
 import { getMailTitle, processMailBody, incr_filename, appendPrefix } from 'src/mailProcess';
+import { ObsGMailSettings } from 'src/setting';
+import { authorize } from 'src/GOauth';
 // @ts-ignore
 export function createGmailConnect(client) {
     return google.gmail({
@@ -9,12 +11,32 @@ export function createGmailConnect(client) {
     })
 }
 
+
+export async function fetchMailAction(settings: ObsGMailSettings) {
+    // console.log("Start Fetch")
+    // console.log(settings)
+    if (settings.gc.gmail) {
+        // console.log("gmail instance exist");
+        await authorize(settings).then(() => {
+            fetchMails(
+                settings.mail_account,
+                settings.from_label,
+                settings.to_label,
+                settings.mail_folder,
+                settings.gc.gmail);
+        })
+    }
+    else {
+        new Notice('Gmail: Please Setup first')
+    }
+}
+
 export async function getMailAccount(gmail: gmail_v1.Gmail) {
     const res = await gmail.users.getProfile({
         userId: 'me'
     });
     const mail_address = res.data.emailAddress;
-    return mail_address;
+    return mail_address || "";
 }
 
 
@@ -65,6 +87,7 @@ async function saveMail(account: string, folder: string, gmail: gmail_v1.Gmail, 
 }
 
 async function fetchMailList(account: string, labelID: string, gmail: gmail_v1.Gmail) {
+    console.log(gmail)
     const res = await gmail.users.threads.list({
         userId: account,
         labelIds: [labelID],
@@ -92,17 +115,16 @@ async function mkdirP(path: string) {
     }
 }
 
-export async function fetchMails(account: string, fromID: string, toID: string, base_folder: string, gmail: gmail_v1.Gmail) {
-    new Notice('Start Fetch Mail');
+async function fetchMails(account: string, fromID: string, toID: string, base_folder: string, gmail: gmail_v1.Gmail) {
+    new Notice('Gmail: Fetch starting');
     await mkdirP(base_folder)
     const threads = await fetchMailList(account, fromID, gmail) || []
-    console.log(threads);
     for (let i = 0; i < threads.length; i++) {
         if (i % 10 == 0)
-            new Notice(`Fetching Mail ${i} /${threads.length}`);
+            new Notice(`Gmail: ${i / threads.length * 100}% fetched`);
         const id = threads[i].id || ""
         await saveMail(account, base_folder, gmail, id);
         await updateLabel(account, fromID, toID, id, gmail);
     }
-    new Notice('End Fetch Mail');
+    new Notice(`Gmail: ${threads.length} mails fetched.`);
 }

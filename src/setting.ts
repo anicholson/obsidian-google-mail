@@ -1,83 +1,193 @@
 import { setupGserviceConnection } from 'src/GOauth';
+import { checkToken, removeToken } from 'src/GOauth';
+import { Setting, Modal, Notice, App } from 'obsidian';
+import { ObsGMailSettingTab } from 'src/GoogleMail'
 
-import { Setting } from 'obsidian';
+
+interface gservice {
+	authClient: any;
+	gmail: any;
+	scope: Array<string>;
+	login: boolean;
+}
+
+export interface ObsGMailSettings {
+	gc: gservice
+	credentials: string;
+	from_label: string;
+	to_label: string;
+	mail_folder: string;
+	token_path: string;
+	labels: Array<Array<string>>;
+	mail_account: string;
+}
+
+export const DEFAULT_SETTINGS: ObsGMailSettings = {
+	gc: {
+		authClient: null,
+		gmail: null,
+		scope: [],
+		login: false,
+	},
+	credentials: "",
+	from_label: "",
+	to_label: "",
+	mail_folder: "fetchedMail",
+	token_path: "plugins/obsidian-google-mail/.token",
+	labels: [[]],
+	mail_account: ""
+}
+
+export class ExampleModal extends Modal {
+	result: string;
+	settings: ObsGMailSettings
+	settingTab: ObsGMailSettingTab
+	onSubmit: (result: string) => void;
+	constructor(app: App, settingTab: ObsGMailSettingTab, onSubmit: (result: string) => void) {
+		super(app);
+		this.onSubmit = onSubmit;
+		this.settingTab = settingTab;
+		this.settings = settingTab.plugin.settings;
+	}
+
+	onOpen() {
+		const { contentEl } = this;
+
+		contentEl.createEl("h1", { text: "Paste Credential Content" });
+		this.result = this.settings.credentials;
+		new Setting(contentEl)
+			.setName("Credential Content")
+			.addText((text) =>
+				text.setValue(this.settings.credentials)
+					.onChange(async (value) => {
+						this.result = value;
+						this.settings.credentials = value;
+						await this.settingTab.plugin.saveSettings();
+					}));
+		new Setting(contentEl)
+			.addButton((btn) =>
+				btn
+					.setButtonText("Submit")
+					.setCta()
+					.onClick(() => {
+						this.close();
+						this.onSubmit(this.result);
+					}));
+	}
+
+	async onClose() {
+		let { contentEl } = this;
+		contentEl.empty();
+		if (this.result) {
+			if (await setupGserviceConnection(this.settings)) {
+				new Notice('Successful Logined');
+				await this.settingTab.plugin.saveSettings();
+				this.settingTab.display();
+			}
+			else {
+				await logout(this.settings, this.settingTab);
+			}
+		}
+		else
+			new Notice('No credentials obtained')
+	}
+}
+
+
+async function logout(settings: ObsGMailSettings, Tab: ObsGMailSettingTab) {
+	removeToken(settings.token_path).then(() => {
+		settings.mail_account = ""
+		settings.from_label = ""
+		settings.to_label = ""
+		settings.labels = [[]]
+		settings.gc.gmail = null
+		settings.gc.login = false
+		settings.gc.authClient = null
+		// console.log(settings)
+		Tab.plugin.saveSettings();
+		Tab.display();
+	})
+}
+
 // @ts-ignore
 export function draw_settingtab(settingTab) {
 	const plugin = settingTab.plugin;
 	const { containerEl } = settingTab;
+	const settings = plugin.settings;
 	containerEl.empty();
-	containerEl.createEl('h2', { text: 'Setup Google OAuth settings' });
-	new Setting(containerEl)
+	containerEl.createEl('h2', { text: 'Setup Google OAuth' });
+	const profile_section = new Setting(containerEl)
 		.setName('Credential Content')
-		.setDesc('The content from credential file (*.json)')
-		.addText(text => text
-			.setPlaceholder('Just copy and paste')
-			.setValue(plugin.settings.credentials)
-			.onChange(async (value) => {
-				plugin.settings.credentials = value;
-				await plugin.saveSettings();
-			})).addButton((cb) => {
-				cb.setButtonText("Setup")
-					.setCta()
-					.onClick(() => {
-						setupGserviceConnection(plugin.settings).then(() => { settingTab.display(); })
-					});
+		.setDesc('The content from credential file (*.json)');
+	profile_section.addButton((cb) => {
+		cb.setButtonText("Setup")
+			.setCta()
+			.onClick(() => {
+				new ExampleModal(this.app, settingTab,
+					(result) => { }).open()
 			});
+	});
 
-	new Setting(containerEl)
-		.setName("Gmail Account")
-		.setDesc('email account to fetch mails')
-		.addText(text => text
-			.setValue(plugin.settings.mail_account)
-			.setDisabled(true)
-		);
-	// .onChange(async (value) => {
-	// 	plugin.settings.mail_account = value;
-	// 	await plugin.saveSettings();
-	// })
+	// Only Render the following sections when user is logined
+	if (async () => { checkToken(settings) }) {
+		profile_section.addButton((cb) => {
+			cb.setButtonText("logout")
+				.setCta()
+				.onClick(async () => {
+					await logout(settings, settingTab);
+				});
+		});
 
-	new Setting(containerEl)
-		.setName('>> Mail from label')
-		.setDesc('Labels to fetched from Gmail').addDropdown(
-			(cb) => {
-				if (plugin.settings.labels.length > 0)
-					// @ts-ignore
-					plugin.settings.labels.forEach((label) => {
-						cb.addOption(label[1], label[0])
+		containerEl.createEl('h2', { text: 'EMail Fetch Settings' });
+		new Setting(containerEl)
+			.setName('Email Account')
+			.addText(text => text
+				.setValue(settings.mail_account)
+				.setDisabled(true)
+			);
+		new Setting(containerEl)
+			.setName('>> Mail from label')
+			.setDesc('Labels to fetched from Gmail').addDropdown(
+				(cb) => {
+					if (settings.labels.length > 0)
+						// @ts-ignore
+						settings.labels.forEach((label) => {
+							cb.addOption(label[1], label[0])
+						})
+					if (settings.from_label)
+						cb.setValue(settings.from_label)
+					cb.onChange(async (value) => {
+						settings.from_label = value;
+						await plugin.saveSettings();
 					})
-				if (plugin.settings.from_label)
-					cb.setValue(plugin.settings.from_label)
-				cb.onChange(async (value) => {
-					plugin.settings.from_label = value;
-					await plugin.saveSettings();
-				})
-			}
-		)
-	new Setting(containerEl)
-		.setName('Mail to label >>')
-		.setDesc('Labels to fetched from Gmail').addDropdown(
-			(cb) => {
-				if (plugin.settings.labels.length > 0)
-					// @ts-ignore
-					plugin.settings.labels.forEach((label) => {
-						cb.addOption(label[1], label[0]);
+				}
+			)
+		new Setting(containerEl)
+			.setName('Mail to label >>')
+			.setDesc('Labels to fetched from Gmail').addDropdown(
+				(cb) => {
+					if (settings.labels.length > 0)
+						// @ts-ignore
+						settings.labels.forEach((label) => {
+							cb.addOption(label[1], label[0]);
+						})
+					if (settings.to_label)
+						cb.setValue(settings.to_label)
+					cb.onChange(async (value) => {
+						settings.to_label = value;
+						await plugin.saveSettings();
 					})
-				if (plugin.settings.to_label)
-					cb.setValue(plugin.settings.to_label)
-				cb.onChange(async (value) => {
-					plugin.settings.to_label = value;
+				}
+			)
+		new Setting(containerEl)
+			.setName('Mail Folder')
+			.setDesc('folder to store mail notes')
+			.addText(text => text
+				.setPlaceholder('Relative path in vault')
+				.setValue(settings.mail_folder)
+				.onChange(async (value) => {
+					settings.mail_folder = value;
 					await plugin.saveSettings();
-				})
-			}
-		)
-	new Setting(containerEl)
-		.setName('Mail Folder')
-		.setDesc('folder to store mail notes')
-		.addText(text => text
-			.setPlaceholder('Relative path in vault')
-			.setValue(plugin.settings.mail_folder)
-			.onChange(async (value) => {
-				plugin.settings.mail_folder = value;
-				await plugin.saveSettings();
-			}));
+				}));
+	}
 }

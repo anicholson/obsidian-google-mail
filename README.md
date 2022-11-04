@@ -1,6 +1,6 @@
 # Obsidian Google Mail
 
-This plugin save emails on Gmail as markdown notes. Use this plugin [safely](#security-issue) so you won't mess up your gmail account.
+This plugin saves emails on Gmail as markdown notes. Use this plugin [safely](#security-issue) so you won't mess up your gmail account.
 
 ## Application Scenarios
 

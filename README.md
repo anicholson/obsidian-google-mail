@@ -17,7 +17,7 @@ https://user-images.githubusercontent.com/29173832/199773312-3f501499-64aa-419b-
 
 __Already have a credential__ : If you're using google api in other [plugins](#thanks) you can simplely enable the Gmail api for that project, then you can reuse the credential.
 
-__Use my credential__ : I have a credential for 100 users and would like to know how much it's gonna cost for multiple users. Contact me so you don't need to go through this part.
+__Use my credential__ : I have a credential for 100 users and would like to know how much it's gonna cost for multiple users. Contact me so you don't need to go through this part. (thingnotok _at_ gmail.com)
 
 
 1. Goto https://console.cloud.google.com/ to create credentials. 

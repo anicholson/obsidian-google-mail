@@ -62,7 +62,7 @@ Check [Template](Template.md) to learn how to setup a note template for email no
 # Security Issue
 
 __Background__: 
-Currently, the plugin will keep a `.token.json` file containing all the information required to access gmail account, so you don't have login everytime. But it also means that anyone with the file can do whatever he/she wants to your emails. Except for the others, all plugins you use have access to this file, too.
+Currently, the plugin will keep a `.token.json` file containing all the information required to access gmail account, so you don't have login everytime. But it also means that anyone with the file can do whatever he/she wants to your emails. In addition to the others, all plugins you use have access to this file, too.
 
 This is actually a common issue for plugins trying to integrate other services. There are [discussions](https://forum.obsidian.md/t/a-place-for-plugins-sensitive-data/18308) about how to safely keep these security files. But it's not gonna easy for a pure local application.
 

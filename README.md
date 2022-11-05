@@ -72,7 +72,7 @@ __Another approach__ is that if you use this plugin for "newsletters" and "send 
 
 # Other details
 
-- The mails are converted to markdown format. Some emails may seem weird, but it is alread good enough to me now. 
+- The mails are converted to markdown format. Some emails may seem weird. 
   - Thanks to the contrubuters of [Turndown](https://github.com/mixmark-io/turndown).
   - I will add support to save email in plaintext format. Plaintext is suited for note-taking and avoid most of weidly large images in the note.
 

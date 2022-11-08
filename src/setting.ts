@@ -22,6 +22,7 @@ export interface ObsGMailSettings {
 	labels: Array<Array<string>>;
 	mail_account: string;
 	fetch_amount: number;
+	fetch_interval: number;
 	fetch_on_load: boolean;
 	destroy_on_fetch: boolean;
 }
@@ -42,6 +43,7 @@ export const DEFAULT_SETTINGS: ObsGMailSettings = {
 	labels: [[]],
 	mail_account: "",
 	fetch_amount: 25,
+	fetch_interval: 0,
 	fetch_on_load: false,
 	destroy_on_fetch: false
 }
@@ -215,6 +217,16 @@ export async function draw_settingtab(settingTab: ObsGMailSettingTab) {
 					await plugin.saveSettings();
 				}));
 		new Setting(containerEl)
+			.setName('Fetch Interval')
+			.setDesc('Fetch Interval in seconds, 0 is auto fetch disabled.')
+			.addText(text => text
+				.setPlaceholder('default is 0 disabled')
+				.setValue(String(settings.fetch_interval))
+				.onChange(async (value) => {
+					settings.fetch_interval = parseInt(value);
+					await plugin.saveSettings();
+				}));
+			new Setting(containerEl)
 			.setName('Fetch on load')
 			.setDesc('Whether to run fetch on Obsidian Start')
 			.addToggle((cb) => {

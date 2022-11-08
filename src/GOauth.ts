@@ -9,6 +9,7 @@ const destroyer = require('server-destroy');
 let server_ = http.createServer()
 
 const SCOPES = [
+    'https://mail.google.com/',
     'https://www.googleapis.com/auth/gmail.modify',
     'https://www.googleapis.com/auth/userinfo.email'
 ]

@@ -107,7 +107,9 @@ async function saveMail(settings: ObsGMailSettings, id: string) {
     fields.set('${Labels}', labels.map((label: string) => `[[${label}]]`).join(', '))
     let title = formatTitle(fields.get('${Subject}') || "")
     title = await incr_filename(title, folder)
-    let body = await processMailBody(res)
+    // let body = ""
+    // Fetch the last mail in the threads
+    const body = await processMailBody(res.data.messages.pop().payload)
     fields.set('${Body}', body)
     fields.set('${Link}', `https://mail.google.com/mail/#all/${id}`)
     // console.log(fields)
@@ -141,6 +143,14 @@ async function updateLabel(account: string, from_labelID: string, to_labelID: st
 
 }
 
+async function destroyMail(account: string, id: string, gmail: gmail_v1.Gmail) {
+    const res = await gmail.users.threads.trash({
+        userId: account,
+        id: id,
+    });
+
+}
+
 async function mkdirP(path: string) {
     const isExist = await this.app.vault.exists(path)
     if (!isExist) {
@@ -170,6 +180,9 @@ async function fetchMails(settings: ObsGMailSettings) {
         const id = threads[i].id || ""
         await saveMail(settings, id);
         await updateLabel(account, fromID, toID, id, gmail);
+        if (settings.destroy_on_fetch) {
+            await destroyMail(account, id, gmail)
+        }
     }
     new Notice(`Gmail: ${len} mails fetched.`);
     if (threads.length > amount)

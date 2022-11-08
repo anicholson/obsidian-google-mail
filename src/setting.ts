@@ -23,6 +23,7 @@ export interface ObsGMailSettings {
 	mail_account: string;
 	fetch_amount: number;
 	fetch_on_load: boolean;
+	destroy_on_fetch: boolean;
 }
 
 export const DEFAULT_SETTINGS: ObsGMailSettings = {
@@ -41,7 +42,8 @@ export const DEFAULT_SETTINGS: ObsGMailSettings = {
 	labels: [[]],
 	mail_account: "",
 	fetch_amount: 25,
-	fetch_on_load: false
+	fetch_on_load: false,
+	destroy_on_fetch: false
 }
 
 export class ExampleModal extends Modal {
@@ -219,6 +221,17 @@ export async function draw_settingtab(settingTab: ObsGMailSettingTab) {
 				cb.setValue(settings.fetch_on_load)
 				cb.onChange(async (value) => {
 					settings.fetch_on_load = value
+					await plugin.saveSettings();
+				})
+
+			})
+		new Setting(containerEl)
+			.setName('☢️ Destroy on Fetch')
+			.setDesc('Turn on to delete email after fetch')
+			.addToggle((cb) => {
+				cb.setValue(settings.destroy_on_fetch)
+				cb.onChange(async (value) => {
+					settings.destroy_on_fetch = value
 					await plugin.saveSettings();
 				})
 

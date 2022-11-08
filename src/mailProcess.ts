@@ -10,14 +10,15 @@ async function getMailTitle(title_candidates) {
     return title
 }
 // @ts-ignore
-export async function processMailBody(res) {
-    const payload = (res.data.messages || [])[0].payload
+export async function processMailBody(payload) {
+    // const payload = (res.data.messages || [])[0].payload
     let raw = ""
     if (payload.parts)
         raw = (payload?.parts || [])[1].body?.data || ""
     else
         raw = payload.body?.data || ""
     let txt = base64ToUTF8(raw);
+    // console.log(txt)
     txt = turndownService.turndown(txt)
     txt = txt.replace(/(.*\n\n)/m, "")
     // txt = replaceInMailLink(txt)

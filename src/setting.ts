@@ -218,7 +218,7 @@ export async function draw_settingtab(settingTab: ObsGMailSettingTab) {
 				}));
 		new Setting(containerEl)
 			.setName('Fetch Interval')
-			.setDesc('Fetch Interval in seconds, 0 is auto fetch disabled.')
+			.setDesc('Fetch Interval in minutes, 0 is auto fetch disabled.')
 			.addText(text => text
 				.setPlaceholder('default is 0 disabled')
 				.setValue(String(settings.fetch_interval))

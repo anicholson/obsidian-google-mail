@@ -2,6 +2,7 @@ import { setupGserviceConnection } from 'src/GOauth';
 import { checkToken, removeToken } from 'src/GOauth';
 import { Setting, Modal, Notice, App } from 'obsidian';
 import { ObsGMailSettingTab } from 'src/GoogleMail'
+import { securitycenter_v1p1alpha1 } from 'googleapis';
 
 
 interface gservice {
@@ -12,7 +13,7 @@ interface gservice {
 }
 
 export interface ObsGMailSettings {
-	gc: gservice
+	gc: gservice;
 	credentials: string;
 	from_label: string;
 	to_label: string;
@@ -222,9 +223,12 @@ export async function draw_settingtab(settingTab: ObsGMailSettingTab) {
 			.addText(text => text
 				.setPlaceholder('default is 0 disabled')
 				.setValue(String(settings.fetch_interval))
-				.onChange(async (value) => {
-					settings.fetch_interval = parseInt(value);
+				.onChange(async (value) => {	
+					let parsed = parseInt(value);
+					if (isNaN(parsed)) return;
+					settings.fetch_interval = parsed > 0 ? parsed : 0;
 					await plugin.saveSettings();
+					await plugin.setTimer();									
 				}));
 			new Setting(containerEl)
 			.setName('Fetch on load')

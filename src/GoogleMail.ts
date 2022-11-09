@@ -7,12 +7,15 @@ import { draw_settingtab, ObsGMailSettings, DEFAULT_SETTINGS } from 'src/setting
 
 export default class ObsGMail extends Plugin {
 	settings: ObsGMailSettings;
+	timerID: number;
 
 	async onload() {
 		await this.loadSettings();
 
 		if (this.settings.fetch_on_load)
 			fetchMailAction(this.settings)
+		
+		this.setTimer()
 
 		// This creates an icon in the left ribbon.
 		const ribbonIconEl = this.addRibbonIcon('sheets-in-box', 'gmail fetch',
@@ -35,9 +38,37 @@ export default class ObsGMail extends Plugin {
 	}
 
 	onunload() {
-
+		this.cancelTimer()
 	}
 
+	private async cancelTimer() {
+		try {
+			console.log('Cancelling Interval timer id: ' + this.timerID)
+			clearInterval(this.timerID)
+		}
+		catch {
+			console.log('Error cancelling fetch timer id: ' + this.timerID)
+		}
+	}
+
+	private async setTimer() {
+		if (isNaN(this.settings.fetch_interval) || this.settings.fetch_interval < 0) {
+			return
+		}
+		// cancel previous timer
+		await this.cancelTimer()
+		const msInterval = this.settings.fetch_interval * 60000
+		console.log('Setting Gmail fetch interval to ' + this.settings.fetch_interval + ' minutes.')
+		// Set new timer if interval more than zero is requested
+		if (msInterval > 0) {
+		this.timerID = setInterval(() => {
+				// fetchMailAction(this.settings)
+				console.log('Fetching email ' + msInterval);
+			}, msInterval )
+			console.log('New timer created with id: ' + this.timerID)
+		}
+	}
+	
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 	}

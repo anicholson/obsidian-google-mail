@@ -7,7 +7,7 @@ import { draw_settingtab, ObsGMailSettings, DEFAULT_SETTINGS } from 'src/setting
 
 export default class ObsGMail extends Plugin {
 	settings: ObsGMailSettings;
-	timerID: number;
+	timerID: ReturnType<typeof setInterval>;
 
 	async onload() {
 		await this.loadSettings();
@@ -43,29 +43,26 @@ export default class ObsGMail extends Plugin {
 
 	private async cancelTimer() {
 		try {
-			console.log('Cancelling Interval timer id: ' + this.timerID)
 			clearInterval(this.timerID)
 		}
 		catch {
-			console.log('Error cancelling fetch timer id: ' + this.timerID)
+			console.log('Unable to cancel fetch timer id: ' + this.timerID)
 		}
 	}
 
-	private async setTimer() {
+	async setTimer() {
+
 		if (isNaN(this.settings.fetch_interval) || this.settings.fetch_interval < 0) {
 			return
 		}
-		// cancel previous timer
+
 		await this.cancelTimer()
 		const msInterval = this.settings.fetch_interval * 60000
-		console.log('Setting Gmail fetch interval to ' + this.settings.fetch_interval + ' minutes.')
 		// Set new timer if interval more than zero is requested
 		if (msInterval > 0) {
 		this.timerID = setInterval(() => {
-				// fetchMailAction(this.settings)
-				console.log('Fetching email ' + msInterval);
+				fetchMailAction(this.settings)
 			}, msInterval )
-			console.log('New timer created with id: ' + this.timerID)
 		}
 	}
 	

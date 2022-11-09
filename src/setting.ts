@@ -219,13 +219,14 @@ export async function draw_settingtab(settingTab: ObsGMailSettingTab) {
 				}));
 		new Setting(containerEl)
 			.setName('Fetch Interval')
-			.setDesc('Fetch Interval in minutes, 0 is auto fetch disabled.')
+			.setDesc('Fetch Interval in minutes, 0 disables automatic fetch.')
 			.addText(text => text
 				.setPlaceholder('default is 0 disabled')
 				.setValue(String(settings.fetch_interval))
 				.onChange(async (value) => {	
 					let parsed = parseInt(value);
 					if (isNaN(parsed)) return;
+					// Normalize negative numbers to zero
 					settings.fetch_interval = parsed > 0 ? parsed : 0;
 					await plugin.saveSettings();
 					await plugin.setTimer();									

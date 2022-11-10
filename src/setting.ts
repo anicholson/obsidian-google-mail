@@ -2,6 +2,7 @@ import { setupGserviceConnection } from 'src/GOauth';
 import { checkToken, removeToken } from 'src/GOauth';
 import { Setting, Modal, Notice, App } from 'obsidian';
 import { ObsGMailSettingTab } from 'src/GoogleMail'
+import { securitycenter_v1p1alpha1 } from 'googleapis';
 
 
 interface gservice {
@@ -12,7 +13,7 @@ interface gservice {
 }
 
 export interface ObsGMailSettings {
-	gc: gservice
+	gc: gservice;
 	credentials: string;
 	from_label: string;
 	to_label: string;
@@ -22,6 +23,7 @@ export interface ObsGMailSettings {
 	labels: Array<Array<string>>;
 	mail_account: string;
 	fetch_amount: number;
+	fetch_interval: number;
 	fetch_on_load: boolean;
 	destroy_on_fetch: boolean;
 }
@@ -42,6 +44,7 @@ export const DEFAULT_SETTINGS: ObsGMailSettings = {
 	labels: [[]],
 	mail_account: "",
 	fetch_amount: 25,
+	fetch_interval: 0,
 	fetch_on_load: false,
 	destroy_on_fetch: false
 }
@@ -215,6 +218,20 @@ export async function draw_settingtab(settingTab: ObsGMailSettingTab) {
 					await plugin.saveSettings();
 				}));
 		new Setting(containerEl)
+			.setName('Fetch Interval')
+			.setDesc('Fetch Interval in minutes, 0 disables automatic fetch.')
+			.addText(text => text
+				.setPlaceholder('default is 0 disabled')
+				.setValue(String(settings.fetch_interval))
+				.onChange(async (value) => {	
+					let parsed = parseInt(value);
+					if (isNaN(parsed)) return;
+					// Normalize negative numbers to zero
+					settings.fetch_interval = parsed > 0 ? parsed : 0;
+					await plugin.saveSettings();
+					await plugin.setTimer();									
+				}));
+			new Setting(containerEl)
 			.setName('Fetch on load')
 			.setDesc('Whether to run fetch on Obsidian Start')
 			.addToggle((cb) => {

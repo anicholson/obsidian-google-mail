@@ -16,12 +16,12 @@ ${Body|option}
 
 ## Main Intrinsic Attributes
 |Name|Placeholder|Render Format|Description|Option
-|---|---|---|---|
-|Subject| ${Subject}| Plain text|Email Subject|
-|Labels| ${Labels}|[[label0]], [[lable1]],...|Gmail labels|tag, link|
-|From| ${From}|Plain text|Sender:
-|Date| ${Date}| YYYY-MM-DD| Received Date
-|Link| ${Link}|https://...|Link to the original email
+|---|---|---|---|---|
+|Subject| ${Subject}| Plain text|Email Subject||
+|Labels| ${Labels}|[[label0]], [[lable1]],...|Gmail labels|tag, link||
+|From| ${From}|Plain text|Sender:|
+|Date| ${Date}| YYYY-MM-DD| Received Date|
+|Link| ${Link}|https://...|Link to the original email|
 |Body| ${Body}|html as markdown|Email Body|htmlmd, text, raw|
 
 ## All Intrinsic Attributes

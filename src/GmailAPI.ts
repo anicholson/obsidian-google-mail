@@ -114,10 +114,11 @@ async function saveMail(settings: ObsGMailSettings, id: string) {
     fields.set('${Link}', `https://mail.google.com/mail/#all/${id}`)
     // console.log(fields)
     let content = body
+    let template = "${Body}"
     if (settings.template) {
-        const template = await this.app.vault.readRaw(settings.template)
-        content = fillTemplate(template, fields)
+        template = await this.app.vault.readRaw(settings.template)
     }
+    content = fillTemplate(template, fields)
     await this.app.vault.create(folder + "/" + `${title}.md`, content)
 }
 

@@ -14,7 +14,7 @@ export default class ObsGMail extends Plugin {
 
 		if (this.settings.fetch_on_load)
 			fetchMailAction(this.settings)
-		
+
 		this.setTimer()
 
 		// This creates an icon in the left ribbon.
@@ -60,12 +60,12 @@ export default class ObsGMail extends Plugin {
 		const msInterval = this.settings.fetch_interval * 60000
 		// Set new timer if interval more than zero is requested
 		if (msInterval > 0) {
-		this.timerID = setInterval(() => {
+			this.timerID = setInterval(() => {
 				fetchMailAction(this.settings)
-			}, msInterval )
+			}, msInterval)
 		}
 	}
-	
+
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 	}

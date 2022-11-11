@@ -21,6 +21,7 @@ export interface ObsGMailSettings {
 	template: string;
 	token_path: string;
 	labels: Array<Array<string>>;
+	labelAs: string;
 	mail_account: string;
 	fetch_amount: number;
 	fetch_interval: number;
@@ -42,6 +43,7 @@ export const DEFAULT_SETTINGS: ObsGMailSettings = {
 	mail_folder: "fetchedMail",
 	token_path: "plugins/obsidian-google-mail/.token",
 	labels: [[]],
+	labelAs: "tag",
 	mail_account: "",
 	fetch_amount: 25,
 	fetch_interval: 0,
@@ -158,21 +160,21 @@ export async function draw_settingtab(settingTab: ObsGMailSettingTab) {
 			);
 		new Setting(containerEl)
 			.setName('Labels [From/To]')
-			.setDesc('Labels to fetch from/ Labels to assign').addDropdown(
-				(cb) => {
-					if (settings.labels.length > 0)
-						// @ts-ignore
-						settings.labels.forEach((label) => {
-							cb.addOption(label[1], label[0])
-						})
-					if (settings.from_label)
-						cb.setValue(settings.from_label)
-					cb.onChange(async (value) => {
-						settings.from_label = value;
-						await plugin.saveSettings();
+			.setDesc('Labels to fetch from/ Labels to assign')
+			.addDropdown((cb) => { //Add From Label
+				if (settings.labels.length > 0)
+					// @ts-ignore
+					settings.labels.forEach((label) => {
+						cb.addOption(label[1], label[0])
 					})
-				}
-			).addDropdown(
+				if (settings.from_label)
+					cb.setValue(settings.from_label)
+				cb.onChange(async (value) => {
+					settings.from_label = value;
+					await plugin.saveSettings();
+				})
+			})
+			.addDropdown( //Add to Label
 				(cb) => {
 					if (settings.labels.length > 0)
 						// @ts-ignore
@@ -187,6 +189,19 @@ export async function draw_settingtab(settingTab: ObsGMailSettingTab) {
 					})
 				}
 			)
+		new Setting(containerEl)
+			.setName('Labels as:')
+			.setDesc('Labels are presented as #tag or [[link]] in notes')
+			.addDropdown((cb) => {
+				cb.addOption("tag", "#tag");
+				cb.addOption("link", "[[link]]");
+				if (settings.labelAs)
+					cb.setValue(settings.labelAs)
+				cb.onChange(async (value) => {
+					settings.labelAs = value;
+					await plugin.saveSettings();
+				})
+			})
 		new Setting(containerEl)
 			.setName('Mail Folder')
 			.setDesc('Folder to save mail notes')
@@ -223,15 +238,15 @@ export async function draw_settingtab(settingTab: ObsGMailSettingTab) {
 			.addText(text => text
 				.setPlaceholder('default is 0 disabled')
 				.setValue(String(settings.fetch_interval))
-				.onChange(async (value) => {	
+				.onChange(async (value) => {
 					let parsed = parseInt(value);
 					if (isNaN(parsed)) return;
 					// Normalize negative numbers to zero
 					settings.fetch_interval = parsed > 0 ? parsed : 0;
 					await plugin.saveSettings();
-					await plugin.setTimer();									
+					await plugin.setTimer();
 				}));
-			new Setting(containerEl)
+		new Setting(containerEl)
 			.setName('Fetch on load')
 			.setDesc('Whether to run fetch on Obsidian Start')
 			.addToggle((cb) => {

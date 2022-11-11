@@ -1,6 +1,7 @@
 import { request } from 'obsidian';
 const TurndownService = require('turndown')
 const turndownService = new TurndownService()
+turndownService.remove(['style', 'title'])
 // @ts-ignore
 
 
@@ -9,30 +10,49 @@ async function getMailTitle(title_candidates) {
     title = formatTitle(title)
     return title
 }
-// @ts-ignore
-export async function processHTMLBody(payload) {
-    // const payload = (res.data.messages || [])[0].payload
-    let raw = ""
-    if (payload.parts)
-        raw = (payload?.parts || [])[1].body?.data || ""
-    else
-        raw = payload.body?.data || ""
+
+
+export async function processBody(payload: any, format: string) {
+    let content = ""
+    let body = ""
+    if (!payload.parts) { // mail only offers html
+        if (format == "raw")
+            body = await processRawBody(payload.body.data)
+        else
+            body = await processHTMLBody(payload.body.data)
+    }
+    else {
+        if (format == "htmlmd")
+            body = await processHTMLBody((payload?.parts || [])[1].body?.data || "")
+        else if (format == "text")
+            body = await processPTBody((payload?.parts || [])[0].body?.data || "")
+        else
+            body = await processRawBody((payload?.parts || [])[1].body?.data || "")
+    }
+    return body
+}
+
+
+async function processRawBody(raw: string) {
     let txt = base64ToUTF8(raw);
-    txt = `<div>.</div>` + txt
+    return txt
+}
+
+async function processHTMLBody(raw: string) {
+    let txt = base64ToUTF8(raw);
     txt = turndownService.turndown(txt)
-    txt = txt.replace(/(.*\n\n)/m, "")
-    // txt = replaceInMailLink(txt)
-    // txt = await retriveURITitle(txt)
+    return txt
+}
+
+async function processPTBody(raw: string) {
+    let txt = base64ToUTF8(raw);
+    txt = txt.replace(/(\[image:.*\])/gm, "")
+    txt = await retriveURITitle(txt)
     return txt
 }
 
 function base64ToUTF8(data: string) {
     return new Buffer(data, 'base64').toString("utf-8")
-}
-
-function replaceInMailLink(text: string) {
-    const regex = /(\S*) (\(https:\/\/[^)]*\))/gm;
-    return text.replace(regex, `[$1]$2`)
 }
 
 function blank(text: string): boolean {
@@ -101,7 +121,7 @@ async function uriToTitleURI(url: string): Promise<string> {
 }
 
 async function retriveURITitle(text: string) {
-    const regex = /[^(](http.*)[^)]/gm;
+    const regex = /(https?:\/{2}[^)\s]*)/gm;
     return replaceAsync(text, regex, uriToTitleURI)
 }
 

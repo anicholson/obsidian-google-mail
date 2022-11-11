@@ -6,25 +6,23 @@ Here's an example with [Dataview](https://github.com/blacksmithgu/obsidian-datav
 
 ```md
 title:: ${Subject} 
-tag::  ${Labels}, #captured/email
+tag::  ${Labels|option}, #captured/email
 from:: ${From}
 date:: [[${Date}]]
 link:: [gmail](${Link})
 
----
-
-${Body} 
+${Body|option} 
 ```
 
 ## Main Intrinsic Attributes
-|Name|Placeholder|Render Format|Description|
+|Name|Placeholder|Render Format|Description|Option
 |---|---|---|---|
 |Subject| ${Subject}| Plain text|Email Subject|
-|Labels| ${Labels}|[[label0]], [[lable1]],...|Gmail labels|
+|Labels| ${Labels}|[[label0]], [[lable1]],...|Gmail labels|tag, link|
 |From| ${From}|Plain text|Sender:
 |Date| ${Date}| YYYY-MM-DD| Received Date
 |Link| ${Link}|https://...|Link to the original email
-|Body| ${Body}|html as markdown|Email Body|
+|Body| ${Body}|html as markdown|Email Body|htmlmd, text, raw|
 
 ## All Intrinsic Attributes
 

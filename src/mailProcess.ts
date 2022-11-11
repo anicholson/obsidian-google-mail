@@ -1,6 +1,7 @@
 import { request } from 'obsidian';
 const TurndownService = require('turndown')
 const turndownService = new TurndownService()
+turndownService.remove(['style', 'title'])
 // @ts-ignore
 
 
@@ -9,31 +10,42 @@ async function getMailTitle(title_candidates) {
     title = formatTitle(title)
     return title
 }
-export async function processHTMLBody(payload: any) {
-    // const payload = (res.data.messages || [])[0].payload
-    let raw = ""
-    if (payload.parts)
-        raw = (payload?.parts || [])[1].body?.data || ""
-    else
-        raw = payload.body?.data || ""
+
+
+export async function processBody(payload: any, format: string) {
+    let content = ""
+    let body = ""
+    if (!payload.parts) { // mail only offers html
+        if (format == "raw")
+            body = await processRawBody(payload.body.data)
+        else
+            body = await processHTMLBody(payload.body.data)
+    }
+    else {
+        if (format == "htmlmd")
+            body = await processHTMLBody((payload?.parts || [])[1].body?.data || "")
+        else if (format == "text")
+            body = await processPTBody((payload?.parts || [])[0].body?.data || "")
+        else
+            body = await processRawBody((payload?.parts || [])[1].body?.data || "")
+    }
+    return body
+}
+
+
+async function processRawBody(raw: string) {
     let txt = base64ToUTF8(raw);
-    txt = `<div>.</div>` + txt
-    txt = turndownService.turndown(txt)
-    txt = txt.replace(/(.*\n\n)/m, "")
-    // txt = replaceInMailLink(txt)
-    // txt = await retriveURITitle(txt)
     return txt
 }
 
-export async function processPTBody(payload: any) {
-    // const payload = (res.data.messages || [])[0].payload
-    let raw = ""
-    if (payload.parts)
-        raw = (payload?.parts || [])[0].body?.data || ""
-    else
-        raw = payload.body?.data || ""
+async function processHTMLBody(raw: string) {
     let txt = base64ToUTF8(raw);
-    txt = txt.replace(/(.*\n\n)/gm, "")
+    txt = turndownService.turndown(txt)
+    return txt
+}
+
+async function processPTBody(raw: string) {
+    let txt = base64ToUTF8(raw);
     txt = txt.replace(/(\[image:.*\])/gm, "")
     txt = await retriveURITitle(txt)
     return txt
@@ -104,13 +116,12 @@ async function replaceAsync(str, regex, asyncFn) {
 
 async function uriToTitleURI(url: string): Promise<string> {
     url = url.trim()
-    url = url.replace(/[><]/g, "")
     const title = await fetchUrlTitle(url);
     return `[${title}](${url})`
 }
 
 async function retriveURITitle(text: string) {
-    const regex = /[^(](http.*)[^)]/gm;
+    const regex = /(https?:\/{2}[^)\s]*)/gm;
     return replaceAsync(text, regex, uriToTitleURI)
 }
 

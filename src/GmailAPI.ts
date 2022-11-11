@@ -1,6 +1,6 @@
 import { Notice } from 'obsidian';
 import { google, gmail_v1 } from 'googleapis';
-import { formatTitle, processMailBody, incr_filename, appendPrefix } from 'src/mailProcess';
+import { formatTitle, processHTMLBody, incr_filename, appendPrefix } from 'src/mailProcess';
 import { ObsGMailSettings } from 'src/setting';
 import { authorize } from 'src/GOauth';
 // @ts-ignore
@@ -109,7 +109,7 @@ async function saveMail(settings: ObsGMailSettings, id: string) {
     title = await incr_filename(title, folder)
     // let body = ""
     // Fetch the last mail in the threads
-    const body = await processMailBody(res.data.messages.pop().payload)
+    const body = await processHTMLBody(res.data.messages.pop().payload)
     fields.set('${Body}', body)
     fields.set('${Link}', `https://mail.google.com/mail/#all/${id}`)
     // console.log(fields)
@@ -180,7 +180,7 @@ async function fetchMails(settings: ObsGMailSettings) {
             new Notice(`Gmail: ${(i / len * 100).toFixed(0)}% fetched`);
         const id = threads[i].id || ""
         await saveMail(settings, id);
-        await updateLabel(account, fromID, toID, id, gmail);
+        // await updateLabel(account, fromID, toID, id, gmail);
         if (settings.destroy_on_fetch) {
             await destroyMail(account, id, gmail)
         }

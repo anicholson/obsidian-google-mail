@@ -30,9 +30,6 @@ function base64ToUTF8(data: string) {
     return new Buffer(data, 'base64').toString("utf-8")
 }
 
-
-
-
 function replaceInMailLink(text: string) {
     const regex = /(\S*) (\(https:\/\/[^)]*\))/gm;
     return text.replace(regex, `[$1]$2`)
@@ -45,6 +42,7 @@ function blank(text: string): boolean {
 function notBlank(text: string): boolean {
     return !blank(text);
 }
+
 async function GetPageTitle(url: string): Promise<string> {
     try {
         const html = await request({ url });

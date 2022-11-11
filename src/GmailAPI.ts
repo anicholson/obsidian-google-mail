@@ -98,7 +98,6 @@ async function saveMail(settings: ObsGMailSettings, id: string) {
         id: id,
         format: 'full'
     });
-    console.log("Get staus: " + res.status);
     const title_candidates = ((res.data.messages || [])[0].payload?.headers || [])
     const labelIDs = (res.data.messages || [])[0].labelIds;
     const labels = labelIDs.map((labelID: string) => getLabelName(labelID, settings.labels))

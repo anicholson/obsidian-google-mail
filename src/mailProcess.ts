@@ -9,8 +9,7 @@ async function getMailTitle(title_candidates) {
     title = formatTitle(title)
     return title
 }
-// @ts-ignore
-export async function processHTMLBody(payload) {
+export async function processHTMLBody(payload: any) {
     // const payload = (res.data.messages || [])[0].payload
     let raw = ""
     if (payload.parts)
@@ -26,13 +25,22 @@ export async function processHTMLBody(payload) {
     return txt
 }
 
-function base64ToUTF8(data: string) {
-    return new Buffer(data, 'base64').toString("utf-8")
+export async function processPTBody(payload: any) {
+    // const payload = (res.data.messages || [])[0].payload
+    let raw = ""
+    if (payload.parts)
+        raw = (payload?.parts || [])[0].body?.data || ""
+    else
+        raw = payload.body?.data || ""
+    let txt = base64ToUTF8(raw);
+    txt = txt.replace(/(.*\n\n)/gm, "")
+    txt = txt.replace(/(\[image:.*\])/gm, "")
+    txt = await retriveURITitle(txt)
+    return txt
 }
 
-function replaceInMailLink(text: string) {
-    const regex = /(\S*) (\(https:\/\/[^)]*\))/gm;
-    return text.replace(regex, `[$1]$2`)
+function base64ToUTF8(data: string) {
+    return new Buffer(data, 'base64').toString("utf-8")
 }
 
 function blank(text: string): boolean {
@@ -96,6 +104,7 @@ async function replaceAsync(str, regex, asyncFn) {
 
 async function uriToTitleURI(url: string): Promise<string> {
     url = url.trim()
+    url = url.replace(/[><]/g, "")
     const title = await fetchUrlTitle(url);
     return `[${title}](${url})`
 }

@@ -1,6 +1,6 @@
 import { Notice } from 'obsidian';
 import { google, gmail_v1 } from 'googleapis';
-import { formatTitle, processHTMLBody, incr_filename, appendPrefix } from 'src/mailProcess';
+import { formatTitle, processHTMLBody, incr_filename, processPTBody } from 'src/mailProcess';
 import { ObsGMailSettings } from 'src/setting';
 import { authorize } from 'src/GOauth';
 // @ts-ignore
@@ -89,7 +89,29 @@ function formatDate(iso_date: string) {
     const d = new Date(iso_date);
     return d.toISOString().split('T')[0]
 }
+
+async function obtainTemplate(template_path: string) {
+    let template = "${Body}" // default template
+    if (template_path) {
+        template = await this.app.vault.readRaw(template_path)
+    }
+    // Obtain label option
+    const label_match = template.match(/\$\{Labels\|*(.*)\}/) || []
+    let label_format = "#{}"
+    if (label_match[1] == "link")
+        label_format = "[[{}]]"
+    template = template.replace(/\$\{Labels.*\}/, "${Labels}")
+    // Obtain body format
+    const body_match = template.match(/\$\{Body\|*(.*)\}/) || []
+    let body_format = "html"
+    if (body_match[1] == "plaintext")
+        body_format = "plaintext"
+    template = template.replace(/\$\{Body.*\}/, "${Body}")
+    return { template: template, label_format: label_format, body_format: body_format }
+}
+
 async function saveMail(settings: ObsGMailSettings, id: string) {
+    const note = await obtainTemplate(settings.template)
     const gmail = settings.gc.gmail
     const account = settings.mail_account
     const folder = settings.mail_folder
@@ -98,27 +120,25 @@ async function saveMail(settings: ObsGMailSettings, id: string) {
         id: id,
         format: 'full'
     });
-    console.log("Get staus: " + res.status);
     const title_candidates = ((res.data.messages || [])[0].payload?.headers || [])
     const labelIDs = (res.data.messages || [])[0].labelIds;
     const labels = labelIDs.map((labelID: string) => getLabelName(labelID, settings.labels))
     const fields = getFields(title_candidates)
     fields.set('${Date}', formatDate(fields.get('${Date}') || ""))
-    fields.set('${Labels}', labels.map((label: string) => `[[${label}]]`).join(', '))
+    fields.set('${Labels}', labels.map((label: string) => note.label_format.replace(/\{\}/, label)).join(', '))
     let title = formatTitle(fields.get('${Subject}') || "")
     title = await incr_filename(title, folder)
-    // let body = ""
     // Fetch the last mail in the threads
-    const body = await processHTMLBody(res.data.messages.pop().payload)
+    let body = ""
+    if (note.body_format == "html")
+        body = await processHTMLBody(res.data.messages.pop().payload)
+    else
+        body = await processPTBody(res.data.messages.pop().payload)
     fields.set('${Body}', body)
     fields.set('${Link}', `https://mail.google.com/mail/#all/${id}`)
     // console.log(fields)
     let content = body
-    let template = "${Body}"
-    if (settings.template) {
-        template = await this.app.vault.readRaw(settings.template)
-    }
-    content = fillTemplate(template, fields)
+    content = fillTemplate(note.template, fields)
     await this.app.vault.create(folder + "/" + `${title}.md`, content)
 }
 

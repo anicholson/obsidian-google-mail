@@ -21,7 +21,6 @@ export interface ObsGMailSettings {
 	template: string;
 	token_path: string;
 	labels: Array<Array<string>>;
-	labelAs: string;
 	mail_account: string;
 	fetch_amount: number;
 	fetch_interval: number;
@@ -43,7 +42,6 @@ export const DEFAULT_SETTINGS: ObsGMailSettings = {
 	mail_folder: "fetchedMail",
 	token_path: "plugins/obsidian-google-mail/.token",
 	labels: [[]],
-	labelAs: "tag",
 	mail_account: "",
 	fetch_amount: 25,
 	fetch_interval: 0,
@@ -189,19 +187,6 @@ export async function draw_settingtab(settingTab: ObsGMailSettingTab) {
 					})
 				}
 			)
-		new Setting(containerEl)
-			.setName('Labels as:')
-			.setDesc('Labels are presented as #tag or [[link]] in notes')
-			.addDropdown((cb) => {
-				cb.addOption("tag", "#tag");
-				cb.addOption("link", "[[link]]");
-				if (settings.labelAs)
-					cb.setValue(settings.labelAs)
-				cb.onChange(async (value) => {
-					settings.labelAs = value;
-					await plugin.saveSettings();
-				})
-			})
 		new Setting(containerEl)
 			.setName('Mail Folder')
 			.setDesc('Folder to save mail notes')

@@ -22,7 +22,7 @@ __Use my credential__ : I have a credential for 100 users and would like to know
 
 __Create your own credential, it's free__ :  Goto https://console.cloud.google.com/ to create the credential. 
 
-	- The detail steps with video can be found [here](get-cred.md)
+- The detail steps with video can be found [here](get-cred.md)
 
 ## Installation - II
 

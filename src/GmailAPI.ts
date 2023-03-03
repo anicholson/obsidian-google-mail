@@ -45,7 +45,6 @@ export async function getMailAccount(gmail: gmail_v1.Gmail) {
     return mail_address || "";
 }
 
-
 export async function listLabels(account: string, gmail: gmail_v1.Gmail) {
 
     const res = await gmail.users.labels.list({
@@ -102,7 +101,6 @@ function formatDate(iso_date: string) {
     const d = new Date(iso_date);
     return d.toISOString().split('T')[0]
 }
-
 async function obtainTemplate(template_path: string) {
     let template = "${Body}" // default template
     if (template_path) {
@@ -119,9 +117,13 @@ async function obtainTemplate(template_path: string) {
     return { template: template, label_format: label_format, body_format: body_format }
 }
 
+function cleanFilename(filename: string) {
+    return filename.replace(/[\\/:"*?<>|]+/g, '_')
+}
 
 async function saveMail(settings: ObsGMailSettings, id: string) {
     const note = await obtainTemplate(settings.template)
+    const noteName_template = settings.noteName
     const gmail = settings.gc.gmail
     const account = settings.mail_account
     const folder = settings.mail_folder
@@ -145,7 +147,8 @@ async function saveMail(settings: ObsGMailSettings, id: string) {
     // console.log(fields)
     let content = body
     content = fillTemplate(note.template, fields)
-    await this.app.vault.create(folder + "/" + `${title}.md`, content)
+    const noteName = cleanFilename(fillTemplate(noteName_template, fields))
+    await this.app.vault.create(folder + "/" + `${noteName}.md`, content)
 }
 
 async function fetchMailList(account: string, labelID: string, gmail: gmail_v1.Gmail) {

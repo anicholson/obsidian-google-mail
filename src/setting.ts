@@ -1,7 +1,7 @@
 import { setupGserviceConnection } from 'src/GOauth';
 import { checkToken, removeToken } from 'src/GOauth';
 import { Setting, Modal, Notice, App } from 'obsidian';
-import { ObsGMailSettingTab } from 'src/GoogleMail'
+import { ObsGMailSettingTab } from 'src/main'
 import { securitycenter_v1p1alpha1 } from 'googleapis';
 
 
@@ -26,6 +26,7 @@ export interface ObsGMailSettings {
 	fetch_interval: number;
 	fetch_on_load: boolean;
 	destroy_on_fetch: boolean;
+	noteName: string;
 }
 
 export const DEFAULT_SETTINGS: ObsGMailSettings = {
@@ -40,6 +41,7 @@ export const DEFAULT_SETTINGS: ObsGMailSettings = {
 	to_label: "",
 	template: "",
 	mail_folder: "fetchedMail",
+	noteName: '${Subject}',
 	token_path: "plugins/obsidian-google-mail/.token",
 	labels: [[]],
 	mail_account: "",
@@ -197,6 +199,16 @@ export async function draw_settingtab(settingTab: ObsGMailSettingTab) {
 					settings.mail_folder = value;
 					await plugin.saveSettings();
 				}));
+		new Setting(containerEl)
+			.setName('Mail Name')
+			.setDesc('File name to save mail notes')
+			.addText(text => text
+				.setPlaceholder('${Subject}-${Date}')
+				.setValue(settings.noteName||'')
+				.onChange(async (value) => {
+					settings.noteName = value;
+					await plugin.saveSettings();
+				}))
 		new Setting(containerEl)
 			.setName('Mail Note Template')
 			.setDesc("Please check document for available mail attributes")

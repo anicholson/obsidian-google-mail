@@ -27,7 +27,6 @@ const body_options = new Map(
 export async function fetchMailAction(settings: ObsGMailSettings) {
 
     if (settings.gc.gmail) {
-        // console.log("gmail instance exist");
         await authorize(settings).then(() => {
             fetchMails(settings);
         })
@@ -157,16 +156,37 @@ const b64toBlob = (b64Data, contentType='', sliceSize=512) => {
   }
 
 async function getAttachments(gmail, account, msgId: string, parts, folder){
-    for(let i = 1; i < parts.length; i++){
-        const filename = parts[i].filename
-        const attach_id = parts[i].body.attachmentId
+    const files = Array<string>();
+    for(let i = 0; i < parts.length; i++){
+        const part = parts[i];
+        const filename = part.filename
+        const attach_id = part.body.attachmentId
         const ares = await getAttachment(gmail, account, msgId, attach_id)
         const red = ares.data.data.replace(/-/g, '+').replace(/_/g, '/')
         const init_name = filename
-        console.log(init_name)
         const final_name = await incr_filename(init_name, folder)
-        console.log(final_name)
         await this.app.vault.createBinary(final_name, base64ToArrayBuffer(red))
+        files.push(final_name)
+    }
+    return files
+}
+
+function flatten_parts(dst, parts){
+    if(parts.length == 2 && parts[0].mimeType =='text/plain' && parts[1].mimeType =='text/html'){
+        dst.mtxt = parts[0].body
+        dst.mhtml = parts[1].body
+        for(let i = 2; i < parts.length; i++){
+            dst.assets.push(parts[i])
+        }
+        return dst
+    }
+    else {
+        for(let i = 0; i < parts.length;i++){
+            if(parts[i].mimeType=='multipart/related'||parts[i].mimeType=="multipart/alternative")
+                flatten_parts(dst, parts[i].parts)
+            else
+                dst.assets.push(parts[i])
+        }
     }
 }
 
@@ -190,26 +210,27 @@ async function saveMail(settings: ObsGMailSettings, id: string) {
     let title = formatTitle(fields.get('${Subject}') || "")
     // Fetch the last mail in the threads
     const payload = res.data.messages.pop().payload
-    const body = await processBody(payload, note.body_format)
+    const dst = {assets: Array<any>()}
+    flatten_parts(dst, payload.parts)
+    const body = await processBody([dst.mtxt, dst.mhtml], note.body_format)
     fields.set('${Body}', body)
     fields.set('${Link}', `https://mail.google.com/mail/#all/${id}`)
-    let content = body
-    content = fillTemplate(note.template, fields)
     const noteName = cleanFilename(fillTemplate(noteName_template, fields))
     const finalNoteName = await incr_filename(noteName+`.md`, folder)
-    if(settings.toFetchAttachment){
-        if(hasAttachment(payload)){
-            const msgID = payload.headers[2].value
-            await mkdirP(settings.attachment_folder);
-            await getAttachments(gmail, account, 
-                msgID, payload.parts, settings.attachment_folder);
-        }
+    if(settings.toFetchAttachment && (dst.assets.length > 0)){
+        const msgID = payload.headers[2].value
+        await mkdirP(settings.attachment_folder);
+        const files = await getAttachments(gmail, account, 
+            msgID, dst.assets, settings.attachment_folder);
+        fields.set('${Attachment}', files.map(f=>`![[${f}]]`).join('\n'))
     }
+    else
+        fields.set('${Attachment}', "")
+    const content = fillTemplate(note.template, fields)
     await this.app.vault.create(finalNoteName, content)
 }
 
 async function fetchMailList(account: string, labelID: string, gmail: gmail_v1.Gmail) {
-    // console.log(gmail)
     const res = await gmail.users.threads.list({
         userId: account,
         labelIds: [labelID],

@@ -1,4 +1,4 @@
-import { Notice } from 'obsidian';
+import { Notice, base64ToArrayBuffer } from 'obsidian';
 import { google, gmail_v1 } from 'googleapis';
 import { formatTitle, processBody, incr_filename } from 'src/mailProcess';
 import { ObsGMailSettings } from 'src/setting';
@@ -121,6 +121,55 @@ function cleanFilename(filename: string) {
     return filename.replace(/[\\/:"*?<>|]+/g, '_')
 }
 
+async function getAttachment(gmail, account: string, message_id: string, attachment_id: string) {
+    const res = await gmail.users.messages.attachments.get({
+        userId: account,
+        messageId: message_id,
+        id: attachment_id
+    });
+    return res
+}
+function hasAttachment(payload){
+    if(!payload.parts[0].parts)
+        return false;
+    else
+        return true;
+}
+
+const b64toBlob = (b64Data, contentType='', sliceSize=512) => {
+    const byteCharacters = atob(b64Data);
+    const byteArrays = [];
+  
+    for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+      const slice = byteCharacters.slice(offset, offset + sliceSize);
+  
+      const byteNumbers = new Array(slice.length);
+      for (let i = 0; i < slice.length; i++) {
+        byteNumbers[i] = slice.charCodeAt(i);
+      }
+  
+      const byteArray = new Uint8Array(byteNumbers);
+      byteArrays.push(byteArray);
+    }
+  
+    const blob = new Blob(byteArrays, {type: contentType});
+    return blob;
+  }
+
+async function getAttachments(gmail, account, msgId: string, parts, folder){
+    for(let i = 1; i < parts.length; i++){
+        const filename = parts[i].filename
+        const attach_id = parts[i].body.attachmentId
+        const ares = await getAttachment(gmail, account, msgId, attach_id)
+        const red = ares.data.data.replace(/-/g, '+').replace(/_/g, '/')
+        const init_name = filename
+        console.log(init_name)
+        const final_name = await incr_filename(init_name, folder)
+        console.log(final_name)
+        await this.app.vault.createBinary(final_name, base64ToArrayBuffer(red))
+    }
+}
+
 async function saveMail(settings: ObsGMailSettings, id: string) {
     const note = await obtainTemplate(settings.template)
     const noteName_template = settings.noteName
@@ -139,16 +188,24 @@ async function saveMail(settings: ObsGMailSettings, id: string) {
     fields.set('${Date}', formatDate(fields.get('${Date}') || ""))
     fields.set('${Labels}', labels.map((label: string) => note.label_format.replace(/\{\}/, label)).join(', '))
     let title = formatTitle(fields.get('${Subject}') || "")
-    title = await incr_filename(title, folder)
     // Fetch the last mail in the threads
-    const body = await processBody(res.data.messages.pop().payload, note.body_format)
+    const payload = res.data.messages.pop().payload
+    const body = await processBody(payload, note.body_format)
     fields.set('${Body}', body)
     fields.set('${Link}', `https://mail.google.com/mail/#all/${id}`)
-    // console.log(fields)
     let content = body
     content = fillTemplate(note.template, fields)
     const noteName = cleanFilename(fillTemplate(noteName_template, fields))
-    await this.app.vault.create(folder + "/" + `${noteName}.md`, content)
+    const finalNoteName = await incr_filename(noteName+`.md`, folder)
+    if(settings.toFetchAttachment){
+        if(hasAttachment(payload)){
+            const msgID = payload.headers[2].value
+            await mkdirP(settings.attachment_folder);
+            await getAttachments(gmail, account, 
+                msgID, payload.parts, settings.attachment_folder);
+        }
+    }
+    await this.app.vault.create(finalNoteName, content)
 }
 
 async function fetchMailList(account: string, labelID: string, gmail: gmail_v1.Gmail) {

@@ -11,6 +11,16 @@ async function getMailTitle(title_candidates) {
     return title
 }
 
+async function getBody(parts, format){
+    let body = ''
+    if (format == "htmlmd")
+        body = await processHTMLBody((parts || [])[1].body?.data || "")
+    else if (format == "text")
+        body = await processPTBody((parts || [])[0].body?.data || "")
+    else
+        body = await processRawBody((parts || [])[1].body?.data || "")
+    return body
+}
 
 export async function processBody(payload: any, format: string) {
     let content = ""
@@ -22,12 +32,14 @@ export async function processBody(payload: any, format: string) {
             body = await processHTMLBody(payload.body.data)
     }
     else {
-        if (format == "htmlmd")
-            body = await processHTMLBody((payload?.parts || [])[1].body?.data || "")
-        else if (format == "text")
-            body = await processPTBody((payload?.parts || [])[0].body?.data || "")
-        else
-            body = await processRawBody((payload?.parts || [])[1].body?.data || "")
+        if(!payload.parts[0].parts){
+            console.log("Pure mail")
+            body = await getBody(payload.parts, format)
+        }
+        else{
+            console.log("Mail with attachment")
+            body = await getBody(payload.parts[0].parts, format)
+        }
     }
     return body
 }
@@ -144,13 +156,16 @@ function findTitle(list: Array<any>): string {
 }
 
 export async function incr_filename(title: string, folder: string) {
-    let tmp = title
-    let isExist = await this.app.vault.exists(folder + "/" + `${tmp}.md`)
+    const name_sp = title.split('.')
+    const ext = name_sp[1]
+    const ori_name = name_sp[0]
+    let tmp = ori_name
+    let isExist = await this.app.vault.exists(`${folder}/${tmp}.${ext}`)
     let idx = 1
     while (isExist) {
-        tmp = title + "_" + idx.toString()
-        isExist = await this.app.vault.exists(folder + "/" + `${tmp}.md`)
+        tmp = ori_name + "_" + idx.toString()
+        isExist = await this.app.vault.exists(`${folder}/${tmp}.${ext}`)
         idx++
     }
-    return tmp
+    return `${folder}/${tmp}.${ext}`
 }

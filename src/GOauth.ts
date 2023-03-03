@@ -18,7 +18,7 @@ export async function loadSavedCredentialsIfExist(settings: ObsGMailSettings) {
         const content = await this.app.vault.readConfigJson(settings.token_path);
         return google.auth.fromJSON(content);
     } catch (err) {
-        console.log(err)
+        // console.log(err)
         return null;
     }
 }
@@ -126,6 +126,17 @@ export async function authorize(setting: ObsGMailSettings) {
     }
 }
 
+function tryRestore(setting: ObsGMailSettings){
+    const prev_from = setting.prev_labels.from
+    const prev_to = setting.prev_labels.to
+    setting.labels.forEach(nlabel => {
+        if(prev_from == nlabel[1])
+            setting.from_label = prev_from
+        if(prev_to == nlabel[1])
+        setting.to_label = prev_to
+    })
+}
+
 // @ts-ignore
 export async function setupGserviceConnection(settings: ObsGMailSettings) {
     // console.log(settings)
@@ -139,6 +150,7 @@ export async function setupGserviceConnection(settings: ObsGMailSettings) {
     if (settings.gc.login) {
         settings.mail_account = await getMailAccount(gc.gmail);
         settings.labels = await listLabels(settings.mail_account, gc.gmail) || [[]];
+        tryRestore(settings);
         return true;
     }
     else

@@ -11,6 +11,10 @@ interface gservice {
 	scope: Array<string>;
 	login: boolean;
 }
+interface label_set {
+	from: string;
+	to: string
+};
 
 export interface ObsGMailSettings {
 	gc: gservice;
@@ -26,6 +30,7 @@ export interface ObsGMailSettings {
 	fetch_interval: number;
 	fetch_on_load: boolean;
 	destroy_on_fetch: boolean;
+	prev_labels: label_set;
 }
 
 export const DEFAULT_SETTINGS: ObsGMailSettings = {
@@ -46,7 +51,11 @@ export const DEFAULT_SETTINGS: ObsGMailSettings = {
 	fetch_amount: 25,
 	fetch_interval: 0,
 	fetch_on_load: false,
-	destroy_on_fetch: false
+	destroy_on_fetch: false,
+	prev_labels: {
+		from: "",
+		to: ""
+	}
 }
 
 export class ExampleModal extends Modal {
@@ -106,6 +115,7 @@ export class ExampleModal extends Modal {
 
 
 async function logout(settings: ObsGMailSettings, Tab: ObsGMailSettingTab) {
+	settings.prev_labels = {from: settings.from_label, to:settings.to_label}
 	removeToken(settings.token_path).then(() => {
 		settings.mail_account = ""
 		settings.from_label = ""
@@ -114,7 +124,6 @@ async function logout(settings: ObsGMailSettings, Tab: ObsGMailSettingTab) {
 		settings.gc.gmail = null
 		settings.gc.login = false
 		settings.gc.authClient = null
-		// console.log(settings)
 		Tab.plugin.saveSettings();
 		Tab.display();
 	})

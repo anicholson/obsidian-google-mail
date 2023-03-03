@@ -156,13 +156,16 @@ function findTitle(list: Array<any>): string {
 }
 
 export async function incr_filename(title: string, folder: string) {
-    let tmp = title
-    let isExist = await this.app.vault.exists(folder + "/" + `${tmp}.md`)
+    const name_sp = title.split('.')
+    const ext = name_sp[1]
+    const ori_name = name_sp[0]
+    let tmp = ori_name
+    let isExist = await this.app.vault.exists(`${folder}/${tmp}.${ext}`)
     let idx = 1
     while (isExist) {
-        tmp = title + "_" + idx.toString()
-        isExist = await this.app.vault.exists(folder + "/" + `${tmp}.md`)
+        tmp = ori_name + "_" + idx.toString()
+        isExist = await this.app.vault.exists(`${folder}/${tmp}.${ext}`)
         idx++
     }
-    return tmp
+    return `${folder}/${tmp}.${ext}`
 }

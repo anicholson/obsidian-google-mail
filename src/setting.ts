@@ -22,6 +22,8 @@ export interface ObsGMailSettings {
 	from_label: string;
 	to_label: string;
 	mail_folder: string;
+	toFetchAttachment: boolean;
+	attachment_folder: string;
 	template: string;
 	token_path: string;
 	labels: Array<Array<string>>;
@@ -46,6 +48,8 @@ export const DEFAULT_SETTINGS: ObsGMailSettings = {
 	to_label: "",
 	template: "",
 	mail_folder: "fetchedMail",
+	toFetchAttachment: false,
+	attachment_folder: "fetchedMail/attachments",
 	noteName: '${Subject}',
 	token_path: "plugins/obsidian-google-mail/.token",
 	labels: [[]],
@@ -208,6 +212,29 @@ export async function draw_settingtab(settingTab: ObsGMailSettingTab) {
 					settings.mail_folder = value;
 					await plugin.saveSettings();
 				}));
+		new Setting(containerEl)
+		.setName('to Fetch Attachments')
+		.setDesc('Whether to fetch attachments')
+		.addToggle(cb=>{
+			cb.setValue(settings.toFetchAttachment)
+			cb.onChange(async (value) =>{
+				settings.toFetchAttachment = value;
+				await plugin.saveSettings();
+				settingTab.display();
+			})
+		})
+		if(settings.toFetchAttachment){
+			new Setting(containerEl)
+			.setName('Attachment Folder')
+			.setDesc('Folder to save mail attachments')
+			.addText(text => text
+				.setPlaceholder('/Folder/')
+				.setValue(settings.attachment_folder)
+				.onChange(async (value) => {
+					settings.attachment_folder = value;
+					await plugin.saveSettings();
+				}));
+		}
 		new Setting(containerEl)
 			.setName('Mail Name')
 			.setDesc('File name to save mail notes')

@@ -132,6 +132,7 @@ async function saveMail(settings: ObsGMailSettings, id: string) {
         id: id,
         format: 'full'
     });
+    console.log(res.data.messages[0])
     const title_candidates = ((res.data.messages || [])[0].payload?.headers || [])
     const labelIDs = (res.data.messages || [])[0].labelIds;
     const labels = labelIDs.map((labelID: string) => getLabelName(labelID, settings.labels))
@@ -139,7 +140,6 @@ async function saveMail(settings: ObsGMailSettings, id: string) {
     fields.set('${Date}', formatDate(fields.get('${Date}') || ""))
     fields.set('${Labels}', labels.map((label: string) => note.label_format.replace(/\{\}/, label)).join(', '))
     let title = formatTitle(fields.get('${Subject}') || "")
-    title = await incr_filename(title, folder)
     // Fetch the last mail in the threads
     const body = await processBody(res.data.messages.pop().payload, note.body_format)
     fields.set('${Body}', body)
@@ -148,7 +148,13 @@ async function saveMail(settings: ObsGMailSettings, id: string) {
     let content = body
     content = fillTemplate(note.template, fields)
     const noteName = cleanFilename(fillTemplate(noteName_template, fields))
-    await this.app.vault.create(folder + "/" + `${noteName}.md`, content)
+    const finalNoteName = await incr_filename(noteName, folder)
+    console.log("Write file: "+finalNoteName)
+    console.log("Content")
+    console.log(content)
+    if(settings.toFetchAttachment)
+        console.log(res)
+    await this.app.vault.create(folder + "/" + `${finalNoteName}.md`, content)
 }
 
 async function fetchMailList(account: string, labelID: string, gmail: gmail_v1.Gmail) {
@@ -209,7 +215,7 @@ async function fetchMails(settings: ObsGMailSettings) {
             new Notice(`Gmail: ${(i / len * 100).toFixed(0)}% fetched`);
         const id = threads[i].id || ""
         await saveMail(settings, id);
-        await updateLabel(account, fromID, toID, id, gmail);
+        // await updateLabel(account, fromID, toID, id, gmail);
         if (settings.destroy_on_fetch) {
             await destroyMail(account, id, gmail)
         }

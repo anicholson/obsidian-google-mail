@@ -225,7 +225,7 @@ async function saveMail(settings: ObsGMailSettings, id: string) {
         fields.set('${Attachment}', files.map(f=>`![[${f}]]`).join('\n'))
     }
     else
-        fields.set('${Attachment}', "NO Attachments")
+        fields.set('${Attachment}', "")
     const content = fillTemplate(note.template, fields)
     await this.app.vault.create(finalNoteName, content)
 }

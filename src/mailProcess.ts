@@ -11,37 +11,19 @@ async function getMailTitle(title_candidates) {
     return title
 }
 
-async function getBody(parts, format){
+async function getBody(bodys, format){
     let body = ''
     if (format == "htmlmd")
-        body = await processHTMLBody((parts || [])[1].body?.data || "")
+        body = await processHTMLBody(bodys[1].data || "")
     else if (format == "text")
-        body = await processPTBody((parts || [])[0].body?.data || "")
+        body = await processPTBody(bodys[0].data  || "")
     else
-        body = await processRawBody((parts || [])[1].body?.data || "")
+        body = await processRawBody(bodys[1].data || "")
     return body
 }
 
-export async function processBody(payload: any, format: string) {
-    let content = ""
-    let body = ""
-    if (!payload.parts) { // mail only offers html
-        if (format == "raw")
-            body = await processRawBody(payload.body.data)
-        else
-            body = await processHTMLBody(payload.body.data)
-    }
-    else {
-        if(!payload.parts[0].parts){
-            console.log("Pure mail")
-            body = await getBody(payload.parts, format)
-        }
-        else{
-            console.log("Mail with attachment")
-            body = await getBody(payload.parts[0].parts, format)
-        }
-    }
-    return body
+export async function processBody(bodys: any, format: string) {
+    return getBody(bodys, format)
 }
 
 
@@ -98,7 +80,6 @@ async function GetPageTitle(url: string): Promise<string> {
         return title.innerText;
     } catch (ex) {
         console.error(ex);
-
         return "Site Unreachable";
     }
 }
@@ -108,7 +89,6 @@ async function fetchUrlTitle(url: string): Promise<string> {
         const title = await GetPageTitle(url);
         return title.replace(/(\r\n|\n|\r)/gm, "").trim();
     } catch (error) {
-        // console.error(error)
         return "Site Unreachable";
     }
 }

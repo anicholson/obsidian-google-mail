@@ -18,21 +18,16 @@ export async function loadSavedCredentialsIfExist(settings: ObsGMailSettings) {
         const content = await this.app.vault.readConfigJson(settings.token_path);
         return google.auth.fromJSON(content);
     } catch (err) {
-        // console.log(err)
         return null;
     }
 }
 export async function removeToken(path: string) {
-    // console.log("remove toke")
     if (await checkToken(path)) {
-        // console.log("try remove")
-        // console.log(path)
         await this.app.vault.deleteConfigJson(path);
     }
 }
 export async function checkToken(path: string) {
     path = '/.obsidian/' + path + '.json';
-    // console.log("check:" + path)
     if (await this.app.vault.exists(path)) {
         return true;
     }
@@ -40,7 +35,6 @@ export async function checkToken(path: string) {
 }
 
 async function saveCredentials(client: any, credentials: any, token_path: string) {
-    // console.log(client.credentials)
     const keys = JSON.parse(credentials);
     const key = keys.installed || keys.web;
     const payload = {
@@ -54,13 +48,11 @@ async function saveCredentials(client: any, credentials: any, token_path: string
 
 function getPortFromURI(uri: string): number {
     const mat = uri.match(/:(?<port>[0-9]+)/m) || []
-    // console.log(mat[1])
     return Number(mat[1])
 }
 
 async function my_authenticate(scopes: Array<string>, credentials: string) {
     const keys = JSON.parse(credentials).web
-    // console.log(keys)
     const oauth2Client = new google.auth.OAuth2(
         keys.client_id,
         keys.client_secret,
@@ -76,7 +68,7 @@ async function my_authenticate(scopes: Array<string>, credentials: string) {
             prompt: "consent"
         });
         if (server_.listening) {
-            console.log("Sercer is listening on port, Destroy before create")
+            console.log("Server is listening on port, Destroy before create")
             server_.destroy();
         }
         server_ = http
@@ -108,14 +100,12 @@ export async function authorize(setting: ObsGMailSettings) {
     let client = await loadSavedCredentialsIfExist(setting);
     if (!client) {
         // @ts-ignore
-        // console.log("token failed")
         client = await my_authenticate(SCOPES, setting.credentials)
         if (server_.listening)
             server_.destroy();
     }
     // @ts-ignore
     if (client.credentials) {
-        // console.log("Login Success")
         await saveCredentials(client, setting.credentials, setting.token_path);
         setting.gc.authClient = client
         setting.gc.gmail = createGmailConnect(client);

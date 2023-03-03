@@ -11,7 +11,7 @@ async function getMailTitle(title_candidates) {
     return title
 }
 
-async function getBody(bodys, format){
+async function getBody(bodys:any, format:any){
     let body = ''
     if (format == "htmlmd")
         body = await processHTMLBody(bodys[1].data || "")
@@ -19,6 +19,8 @@ async function getBody(bodys, format){
         body = await processPTBody(bodys[0].data  || "")
     else
         body = await processRawBody(bodys[1].data || "")
+    if (body=="")
+        body = await processRawBody(bodys[1].data || bodys[0].data || "")
     return body
 }
 
@@ -137,8 +139,8 @@ function findTitle(list: Array<any>): string {
 
 export async function incr_filename(title: string, folder: string) {
     const name_sp = title.split('.')
-    const ext = name_sp[1]
-    const ori_name = name_sp[0]
+    const ext = name_sp.pop()
+    const ori_name = name_sp.join('.')
     let tmp = ori_name
     let isExist = await this.app.vault.exists(`${folder}/${tmp}.${ext}`)
     let idx = 1

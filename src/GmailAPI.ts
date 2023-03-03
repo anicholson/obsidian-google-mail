@@ -120,7 +120,7 @@ function cleanFilename(filename: string) {
     return filename.replace(/[\\/:"*?<>|]+/g, '_')
 }
 
-async function getAttachment(gmail, account: string, message_id: string, attachment_id: string) {
+async function getAttachment(gmail:gmail_v1.Gmail, account: string, message_id: string, attachment_id: string) {
     const res = await gmail.users.messages.attachments.get({
         userId: account,
         messageId: message_id,
@@ -128,14 +128,8 @@ async function getAttachment(gmail, account: string, message_id: string, attachm
     });
     return res
 }
-function hasAttachment(payload){
-    if(!payload.parts[0].parts)
-        return false;
-    else
-        return true;
-}
 
-const b64toBlob = (b64Data, contentType='', sliceSize=512) => {
+const b64toBlob = (b64Data:string, contentType='', sliceSize=512) => {
     const byteCharacters = atob(b64Data);
     const byteArrays = [];
   
@@ -155,14 +149,14 @@ const b64toBlob = (b64Data, contentType='', sliceSize=512) => {
     return blob;
   }
 
-async function getAttachments(gmail, account, msgId: string, parts, folder){
+async function getAttachments(gmail:gmail_v1.Gmail, account:string, msgId: string, parts:any, folder:string){
     const files = Array<string>();
     for(let i = 0; i < parts.length; i++){
         const part = parts[i];
         const filename = part.filename
         const attach_id = part.body.attachmentId
         const ares = await getAttachment(gmail, account, msgId, attach_id)
-        const red = ares.data.data.replace(/-/g, '+').replace(/_/g, '/')
+        const red = ares.data?.data?.replace(/-/g, '+').replace(/_/g, '/') || ""
         const init_name = filename
         const final_name = await incr_filename(init_name, folder)
         await this.app.vault.createBinary(final_name, base64ToArrayBuffer(red))
@@ -171,7 +165,7 @@ async function getAttachments(gmail, account, msgId: string, parts, folder){
     return files
 }
 
-function flatten_parts(dst, parts){
+function flatten_parts(dst:any, parts:any){
     if(parts.length == 2 && parts[0].mimeType =='text/plain' && parts[1].mimeType =='text/html'){
         dst.mtxt = parts[0].body
         dst.mhtml = parts[1].body
@@ -188,6 +182,12 @@ function flatten_parts(dst, parts){
                 dst.assets.push(parts[i])
         }
     }
+}
+
+interface mail_obj{
+    assets: Array<any>,
+    mhtml: string,
+    mtxt: string
 }
 
 async function saveMail(settings: ObsGMailSettings, id: string) {
@@ -210,8 +210,15 @@ async function saveMail(settings: ObsGMailSettings, id: string) {
     let title = formatTitle(fields.get('${Subject}') || "")
     // Fetch the last mail in the threads
     const payload = res.data.messages.pop().payload
-    const dst = {assets: Array<any>()}
+    const dst:mail_obj = {assets: Array<any>(), mhtml:"", mtxt:""}
     flatten_parts(dst, payload.parts)
+    if(dst.mhtml=="" && dst.mtxt==""){
+        dst.mhtml = dst.assets.pop().body.data;
+        dst.mtxt = dst.mhtml;
+    }
+    console.log("DST:")
+    console.log(payload)
+    console.log(dst)
     const body = await processBody([dst.mtxt, dst.mhtml], note.body_format)
     fields.set('${Body}', body)
     fields.set('${Link}', `https://mail.google.com/mail/#all/${id}`)

@@ -1,5 +1,6 @@
 import { request } from 'obsidian';
-const TurndownService = require('turndown')
+// import {TurndownService} from 'turndown';
+var TurndownService = require('turndown')
 const turndownService = new TurndownService()
 turndownService.remove(['style', 'title'])
 // @ts-ignore

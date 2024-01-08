@@ -11,8 +11,8 @@ from:: ${From}
 date:: [[${Date}]]
 link:: [gmail](${Link})
 
-${Body|option} 
-```
+${Body|option}
+Attachments:: ${Attachment}
 
 ## Main Intrinsic Attributes
 |Name|Placeholder|Render Format|Description|Option
@@ -23,6 +23,7 @@ ${Body|option}
 |Date| ${Date}| YYYY-MM-DD| Received Date|
 |Link| ${Link}|https://...|Link to the original email|
 |Body| ${Body}|html as markdown|Email Body|htmlmd, text, raw|
+|Attachments| ${Attachment}|[[path/to/files]]|Attachments in Email||
 
 ## All Intrinsic Attributes
 

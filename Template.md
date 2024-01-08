@@ -13,9 +13,10 @@ link:: [gmail](${Link})
 
 ${Body|option}
 Attachments:: ${Attachment}
+```
 
 ## Main Intrinsic Attributes
-|Name|Placeholder|Render Format|Description|Option
+|Name|Placeholder|Rendering Format|Description|Option
 |---|---|---|---|---|
 |Subject| ${Subject}| Plain text|Email Subject||
 |Labels| ${Labels}|[[label0]], [[lable1]],...|Gmail labels|tag, link||

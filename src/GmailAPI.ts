@@ -176,7 +176,7 @@ function flatten_parts(dst:any, parts:any){
     }
     else {
         for(let i = 0; i < parts.length;i++){
-            if(parts[i].mimeType=='multipart/related'||parts[i].mimeType=="multipart/alternative")
+            if(parts[i].mimeType=='multipart/related'||parts[i].mimeType=="multipart/alternative" || parts[i].mimeType=="multipart/mixed")
                 flatten_parts(dst, parts[i].parts)
             else
                 dst.assets.push(parts[i])

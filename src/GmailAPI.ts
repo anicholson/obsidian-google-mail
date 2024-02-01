@@ -155,6 +155,12 @@ async function getAttachments(gmail:gmail_v1.Gmail, account:string, msgId: strin
         const part = parts[i];
         const filename = part.filename
         const attach_id = part.body.attachmentId
+
+		if(!filename || !attach_id) {
+			console.debug(msgId, `Part ${i} has no filename or attachmentId, skipping...`)
+			continue
+		}
+
         const ares = await getAttachment(gmail, account, msgId, attach_id)
         const red = ares.data?.data?.replace(/-/g, '+').replace(/_/g, '/') || ""
         const init_name = filename

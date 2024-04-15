@@ -14,14 +14,27 @@ async function getMailTitle(title_candidates) {
 
 async function getBody(bodys:any, format:any){
     let body = ''
+	const normalizedBodys = bodys.map((b:any) => {
+		if(typeof b == "object"){
+			if(b.data)
+				return b.data
+			else {
+			return ""
+			}
+		} else if (typeof b == "string") {
+			return b
+		} else {
+			throw new Error("Unknown body type")
+		}
+	})
     if (format == "htmlmd")
-        body = await processHTMLBody(bodys[1].data || "")
+        body = await processHTMLBody(normalizedBodys[1])
     else if (format == "text")
-        body = await processPTBody(bodys[0].data  || "")
+        body = await processPTBody(normalizedBodys[0])
     else
-        body = await processRawBody(bodys[1].data || "")
+        body = await processRawBody(normalizedBodys[1])
     if (body=="")
-        body = await processRawBody(bodys[1].data || bodys[0].data || "")
+        body = await processRawBody(normalizedBodys[1] || normalizedBodys[0] || "")
     return body
 }
 

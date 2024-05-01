@@ -79,7 +79,8 @@ __Another approach__ is that if you use this plugin for "newsletters" and "send 
 
 # Thanks
 
-The plugin originates from [u/egauthier64](https://www.reddit.com/r/ObsidianMD/comments/yjiq4f/comment/iuqr10u/?context=3)'s email-to-obsidian idea but is an approach based on Gmail server. For the Google API part, I would like to thank [YukiGasai](https://github.com/YukiGasai/obsidian-google-tasks/commits?author=YukiGasai) for his great work on Google series plugins for obsidian and I learn a lot from his implementation. Please check his awesome plugins here, they are extremely useful with google suite and obsidian:
-
-- [obsidian-google-calendar](https://github.com/YukiGasai/obsidian-google-calendar): View the google calender and add/delete events from obsidian.
-- [obsidian-google-task](https://github.com/YukiGasai/obsidian-google-tasks): Allow you to see and manipulate google tasks from obsidian.
+- The plugin originates from [u/egauthier64](https://www.reddit.com/r/ObsidianMD/comments/yjiq4f/comment/iuqr10u/?context=3)'s email-to-obsidian idea but is an approach based on Gmail server. 
+- Thanks to [YukiGasai](https://github.com/YukiGasai/obsidian-google-tasks/commits?author=YukiGasai) for his great work on Google series plugins for obsidian. Please check his awesome plugins here, they are extremely useful with google suite and obsidian:
+	- [obsidian-google-calendar](https://github.com/YukiGasai/obsidian-google-calendar): View the google calender and add/delete events from obsidian.
+	- [obsidian-google-task](https://github.com/YukiGasai/obsidian-google-tasks): Allow you to see and manipulate google tasks from obsidian.
+- Thanks to [@thingnotok](https://github.com/thingnotok) for their great work on this plugin and maintenance.

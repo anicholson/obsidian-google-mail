@@ -1,20 +1,20 @@
-import { setupGserviceConnection } from 'src/GOauth';
+import { Client, setupGserviceConnection } from 'src/GOauth';
 import { checkToken, removeToken } from 'src/GOauth';
 import { Setting, Modal, Notice, App } from 'obsidian';
 import { ObsGMailSettingTab } from 'src/main'
-import { securitycenter_v1p1alpha1 } from 'googleapis';
+import { GMail } from './GmailAPI';
 
 
 interface gservice {
-	authClient: any;
-	gmail: any;
+	authClient: Client | null;
+	gmail: GMail | null;
 	scope: Array<string>;
 	login: boolean;
 }
 interface label_set {
 	from: string;
 	to: string
-};
+}
 
 export interface ObsGMailSettings {
 	gc: gservice;
@@ -102,7 +102,7 @@ export class ExampleModal extends Modal {
 	}
 
 	async onClose() {
-		let { contentEl } = this;
+		const { contentEl } = this;
 		contentEl.empty();
 		if (this.result) {
 			if (await setupGserviceConnection(this.settings)) {
@@ -272,7 +272,7 @@ export async function draw_settingtab(settingTab: ObsGMailSettingTab) {
 				.setPlaceholder('default is 0 disabled')
 				.setValue(String(settings.fetch_interval))
 				.onChange(async (value) => {
-					let parsed = parseInt(value);
+					const parsed = parseInt(value);
 					if (isNaN(parsed)) return;
 					// Normalize negative numbers to zero
 					settings.fetch_interval = parsed > 0 ? parsed : 0;

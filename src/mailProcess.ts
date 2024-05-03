@@ -1,29 +1,24 @@
-import { request } from 'obsidian';
-// import {TurndownService} from 'turndown';
-var TurndownService = require('turndown')
+import { request } from 'obsidian'
+import TurndownService from 'turndown'
+import { warning } from './typeHelpers'
+import { MessagePartBody } from './GmailAPI'
 const turndownService = new TurndownService()
 turndownService.remove(['style', 'title'])
 // @ts-ignore
 
-
-async function getMailTitle(title_candidates) {
-    let title = findTitle(title_candidates)
-    title = formatTitle(title)
-    return title
-}
-
-async function getBody(bodys:any, format:any){
-    let body = ''
-	const normalizedBodys = bodys.map((b:any) => {
-		if(typeof b == "object"){
+async function getBody(bodys: Array<MessagePartBody | null>, format: string){
+    let body : string
+	const normalizedBodys = bodys.map((b) => {
+		if(b && typeof b == "object"){
 			if(b.data)
 				return b.data
 			else {
 			return ""
 			}
-		} else if (typeof b == "string") {
+		} else if (b && typeof b == "string") {
 			return b
 		} else {
+			warning("Couldn't parse email body")
 			throw new Error("Unknown body type")
 		}
 	})
@@ -38,14 +33,13 @@ async function getBody(bodys:any, format:any){
     return body
 }
 
-export async function processBody(bodys: any, format: string) {
+export async function processBody(bodys: Array<MessagePartBody| null>, format: string) {
     return getBody(bodys, format)
 }
 
 
 async function processRawBody(raw: string) {
-    let txt = base64ToUTF8(raw);
-    return txt
+    return base64ToUTF8(raw);
 }
 
 async function processHTMLBody(raw: string) {
@@ -82,7 +76,7 @@ async function GetPageTitle(url: string): Promise<string> {
 
         if (title == null || blank(title?.innerText)) {
             // If site is javascript based and has a no-title attribute when unloaded, use it.
-            var noTitle = title?.getAttr("no-title");
+            const noTitle = title?.getAttr("no-title");
             // @ts-ignore
             if (notBlank(noTitle)) {
                 // @ts-ignore
@@ -100,6 +94,7 @@ async function GetPageTitle(url: string): Promise<string> {
     }
 }
 
+// TODO: Split this into pieces so the string manipulation does not get caught in the async behaviour
 async function fetchUrlTitle(url: string): Promise<string> {
     try {
         const title = await GetPageTitle(url);
@@ -108,18 +103,22 @@ async function fetchUrlTitle(url: string): Promise<string> {
         return "Site Unreachable";
     }
 }
+
+type ReplaceAsyncFn = (match: string, ...args: unknown[]) => Promise<string>
 // @ts-ignore
-async function replaceAsync(str, regex, asyncFn) {
-    // @ts-ignore
-    const promises = [];
-    // @ts-ignore
+async function replaceAsync(str: string, regex: RegExp, asyncFn: ReplaceAsyncFn) {
+    
+    const promises : Array<Promise<string>>= [];
+    
     str.replace(regex, (match, ...args) => {
         const promise = asyncFn(match, ...args);
         promises.push(promise);
+		//TODO: Verify this is correct
+		return match;
     });
-    // @ts-ignore
+    
     const data = await Promise.all(promises);
-    return str.replace(regex, () => data.shift());
+    return str.replace(regex, () => data.shift() || "");
 }
 
 async function uriToTitleURI(url: string): Promise<string> {
@@ -142,13 +141,6 @@ export function appendPrefix(prefix: string, text: string) {
 export function formatTitle(title: string) {
     title = title.replace(/[/<>:"\\|?*]/g, "-")
     return title
-}
-function findTitle(list: Array<any>): string {
-    for (let i = 0; i < list.length; i++) {
-        if (list[i].name == "Subject")
-            return list[i].value
-    }
-    return "EmptyTitle"
 }
 
 export async function incr_filename(title: string, folder: string) {

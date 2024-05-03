@@ -4,7 +4,7 @@
 	"version": "1.4.3",
 	"minAppVersion": "0.15.0",
 	"description": "It fetches Google Mail as md notes. For note taking on newletters and idea collections.",
-	"author": "Lite C",
-	"authorUrl": "https://github.com/thingnotok",
+	"author": "Lite C & Andy Nicholson",
+	"authorUrl": "https://github.com/anicholson",
 	"isDesktopOnly": false
 }

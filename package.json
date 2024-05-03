@@ -28,7 +28,7 @@
 		"@google-cloud/local-auth": "^2.1.1",
 		"@googleapis/gmail": "^9.1.0",
 		"open": "^8.4.0",
-		"turndown": "github:mixmark-io/turndown"
+		"turndown": "turndown"
 	},
 	"standard-version": {
 		"t": ""

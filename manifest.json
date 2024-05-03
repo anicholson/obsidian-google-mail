@@ -1,7 +1,7 @@
 {
 	"id": "obsidian-google-mail",
 	"name": "Google Mail",
-	"version": "1.4.3",
+	"version": "1.4.4",
 	"minAppVersion": "0.15.0",
 	"description": "It fetches Google Mail as md notes. For note taking on newletters and idea collections.",
 	"author": "Lite C & Andy Nicholson",

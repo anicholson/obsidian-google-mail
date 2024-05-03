@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-google-mail",
-	"version": "1.4.4",
+	"version": "1.4.4.1",
 	"description": "It fetches Google Mail as md notes. For note taking on newletters and idea collections.",
 	"main": "main.js",
 	"keywords": [],

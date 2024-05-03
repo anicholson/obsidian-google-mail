@@ -1,12 +1,14 @@
 import { Notice, base64ToArrayBuffer } from 'obsidian';
-import { google, gmail_v1 } from 'googleapis';
-import { formatTitle, processBody, incr_filename } from 'src/mailProcess';
+import { gmail_v1 } from '@googleapis/gmail';
+import { processBody, incr_filename } from 'src/mailProcess';
 import { ObsGMailSettings } from 'src/setting';
 import { authorize } from 'src/GOauth';
+import { assertPresent } from './typeHelpers';
+
+export type GMail = gmail_v1.Gmail
 // @ts-ignore
-export function createGmailConnect(client) {
-    return google.gmail({
-        version: 'v1',
+export function createGmailConnect(client) : GMail {
+    return new gmail_v1.Gmail({
         auth: client
     })
 }
@@ -54,23 +56,11 @@ export async function listLabels(account: string, gmail: gmail_v1.Gmail) {
         console.log('No labels found.');
         return;
     }
-    let label_list = Array<Array<string>>();
+    const label_list = Array<Array<string>>();
     labels.forEach((label) => {
         label_list.push([String(label.name), String(label.id)])
     });
     return label_list;
-}
-
-async function getLabelIDbyName(name: string, gmail: gmail_v1.Gmail) {
-    const res = await gmail.users.labels.list({
-        userId: 'me'
-    });
-    const labels = res.data.labels || [];
-    let result_id = ""
-    labels.forEach((label) => {
-        if (label.name === name) { result_id = label.id || "" }
-    });
-    return result_id;
 }
 
 function fillTemplate(template: string, mail: Map<string, string>) {
@@ -82,9 +72,11 @@ function fillTemplate(template: string, mail: Map<string, string>) {
     return string
 }
 
-function getFields(ary: Array<{ name: string, value: string }>) {
+function getFields(ary: PayloadHeaders) {
     const m = new Map<string, string>()
-    ary.forEach((item) => {
+    ary.filter((item) => item.name && item.value).forEach((item) => {
+		assertPresent(item.name, "No name in payload")
+		assertPresent(item.value, "No value in payload")
         m.set("${" + item.name + "}", item.value)
     })
     return m
@@ -129,32 +121,12 @@ async function getAttachment(gmail:gmail_v1.Gmail, account: string, message_id: 
     return res
 }
 
-const b64toBlob = (b64Data:string, contentType='', sliceSize=512) => {
-    const byteCharacters = atob(b64Data);
-    const byteArrays = [];
-  
-    for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
-      const slice = byteCharacters.slice(offset, offset + sliceSize);
-  
-      const byteNumbers = new Array(slice.length);
-      for (let i = 0; i < slice.length; i++) {
-        byteNumbers[i] = slice.charCodeAt(i);
-      }
-  
-      const byteArray = new Uint8Array(byteNumbers);
-      byteArrays.push(byteArray);
-    }
-  
-    const blob = new Blob(byteArrays, {type: contentType});
-    return blob;
-  }
-
-async function getAttachments(gmail:gmail_v1.Gmail, account:string, msgId: string, parts:any, folder:string){
+async function getAttachments(gmail:gmail_v1.Gmail, account:string, msgId: string, parts: MessagePart[], folder:string){
     const files = Array<string>();
     for(let i = 0; i < parts.length; i++){
         const part = parts[i];
         const filename = part.filename
-        const attach_id = part.body.attachmentId
+        const attach_id = part.body?.attachmentId
 
 		if(!filename || !attach_id) {
 			console.debug(msgId, `Part ${i} has no filename or attachmentId, skipping...`)
@@ -171,35 +143,56 @@ async function getAttachments(gmail:gmail_v1.Gmail, account:string, msgId: strin
     return files
 }
 
-function flatten_parts(dst:any, parts:any){
+function flatten_parts(mbObj: MailboxObject, parts: MessagePart[]){
     if(parts.length == 2 && parts[0].mimeType =='text/plain' && parts[1].mimeType =='text/html'){
-        dst.mtxt = parts[0].body
-        dst.mhtml = parts[1].body
+		assertPresent(parts[0].body, "MessagePart had text/plain MIME type but no body!")
+		assertPresent(parts[1].body, "MessagePart had text/html MIME type but no body!")
+        mbObj.raw_mtxt = parts[0].body
+        mbObj.raw_mhtml = parts[1].body
         for(let i = 2; i < parts.length; i++){
-            dst.assets.push(parts[i])
+            mbObj.assets.push(parts[i])
         }
-        return dst
+        return mbObj
     }
     else {
-        for(let i = 0; i < parts.length;i++){
-            if(parts[i].mimeType=='multipart/related'||parts[i].mimeType=="multipart/alternative" || parts[i].mimeType=="multipart/mixed")
-                flatten_parts(dst, parts[i].parts)
-            else
-                dst.assets.push(parts[i])
-        }
+        parts.forEach((part) => {
+            if(part.mimeType=='multipart/related'||part.mimeType=="multipart/alternative" || part.mimeType=="multipart/mixed"){ 
+				assertPresent(part.parts, "MessagePart had mixed MIME type but no sub-parts!")
+				flatten_parts(mbObj, part.parts)
+			}
+            else {
+                mbObj.assets.push(part)
+			}
+        })
     }
 }
 
-interface mail_obj{
-    assets: Array<any>,
+ type MailboxObject = {
+    assets: Array<MessagePart>,
+	raw_mhtml: MessagePartBody | null,
+	raw_mtxt: MessagePartBody| null,
     mhtml: string,
     mtxt: string
 }
+
+function getLabelIDs(res: gmail_v1.Schema$Thread) {
+	const messages = res.messages;
+	if(messages && messages[0]?.labelIds) {
+		return messages[0].labelIds;
+	} else {
+		return []
+	}
+}
+
+export type PayloadHeaders = gmail_v1.Schema$MessagePartHeader[]
+export type MessagePart = gmail_v1.Schema$MessagePart
+export type MessagePartBody = gmail_v1.Schema$MessagePartBody
 
 async function saveMail(settings: ObsGMailSettings, id: string) {
     const note = await obtainTemplate(settings.template)
     const noteName_template = settings.noteName
     const gmail = settings.gc.gmail
+	assertPresent(gmail, "Gmail is not setup properly")
     const account = settings.mail_account
     const folder = settings.mail_folder
     const res = await gmail.users.threads.get({
@@ -207,42 +200,48 @@ async function saveMail(settings: ObsGMailSettings, id: string) {
         id: id,
         format: 'full'
     });
-    const title_candidates = ((res.data.messages || [])[0].payload?.headers || [])
-    const labelIDs = (res.data.messages || [])[0].labelIds;
-    const labels = labelIDs.map((labelID: string) => getLabelName(labelID, settings.labels))
+	assertPresent(res.data.messages, `No messages in thread with id: ${id}`)
+    const title_candidates: PayloadHeaders = ((res.data.messages || [])[0].payload?.headers || [])
+    const labels = getLabelIDs(res.data).map((labelID: string) => getLabelName(labelID, settings.labels))
     const fields = getFields(title_candidates)
     fields.set('${Date}', formatDate(fields.get('${Date}') || ""))
     fields.set('${Labels}', labels.map((label: string) => note.label_format.replace(/\{\}/, label)).join(', '))
-    let title = formatTitle(fields.get('${Subject}') || "")
-    // Fetch the last mail in the threads
-    const payload = res.data.messages.pop().payload
-    const dst:mail_obj = {assets: Array<any>(), mhtml:"", mtxt:""}
-	const parts = payload.parts ? payload.parts : [payload]
-    flatten_parts(dst, parts)
-    if(dst.mhtml=="" && dst.mtxt==""){
+	// Fetch the last mail in the threads
+    const payload = res.data.messages.pop()?.payload
+    assertPresent(payload, `No payload in thread with id: ${id}`)
+    const mailboxObject: MailboxObject = {assets: [], raw_mhtml:null, raw_mtxt:null, mhtml:"", mtxt:""}
+	const parts : MessagePart[] = payload.parts ? payload.parts : [payload]
+    flatten_parts(mailboxObject, parts)
+    if(!mailboxObject.raw_mhtml && !mailboxObject.raw_mtxt){
 		let bodyText = ""
-		const htmlAsset = dst.assets.find((asset)=> asset.mimeType == "text/html" || asset.mimeType == "text/plain");
-		if(htmlAsset) {
-			bodyText = htmlAsset.body ? htmlAsset.body.data : htmlAsset.data
+		const htmlAsset = mailboxObject.assets.find((asset)=> asset.mimeType == "text/html" || asset.mimeType == "text/plain");
+		if(htmlAsset && htmlAsset.body?.data) {
+			bodyText = htmlAsset.body.data
 		} else {
 			console.warn("no body found")
 		}
-        dst.mhtml = bodyText
-        dst.mtxt = bodyText
+        mailboxObject.mhtml = bodyText
+        mailboxObject.mtxt = bodyText
     }
-    console.log("DST:")
+    console.log("mailboxObject:")
     console.log(payload)
-    console.log(dst)
-    const body = await processBody([dst.mtxt, dst.mhtml], note.body_format)
+    console.log(mailboxObject)
+
+    const body = await processBody([mailboxObject.raw_mtxt, mailboxObject.raw_mhtml], note.body_format)
     fields.set('${Body}', body)
     fields.set('${Link}', `https://mail.google.com/mail/#all/${id}`)
     const noteName = cleanFilename(fillTemplate(noteName_template, fields))
     const finalNoteName = await incr_filename(noteName+`.md`, folder)
-    if(settings.toFetchAttachment && (dst.assets.length > 0)){
+    if(settings.toFetchAttachment && (mailboxObject.assets.length > 0)){
+		assertPresent(payload.headers, "No headers in payload")
+		assertPresent(payload.headers[2], "No headers in payload")
+
         const msgID = payload.headers[2].value
+
+		assertPresent(msgID, "No msgID in payload")
         await mkdirP(settings.attachment_folder);
         const files = await getAttachments(gmail, account, 
-            msgID, dst.assets, settings.attachment_folder);
+            msgID, mailboxObject.assets, settings.attachment_folder);
         fields.set('${Attachment}', files.map(f=>`![[${f}]]`).join('\n'))
     }
     else
@@ -261,7 +260,7 @@ async function fetchMailList(account: string, labelID: string, gmail: gmail_v1.G
 }
 
 async function updateLabel(account: string, from_labelID: string, to_labelID: string, id: string, gmail: gmail_v1.Gmail) {
-    const res = await gmail.users.threads.modify({
+    await gmail.users.threads.modify({
         userId: account,
         id: id,
         requestBody: {
@@ -269,11 +268,10 @@ async function updateLabel(account: string, from_labelID: string, to_labelID: st
             removeLabelIds: [from_labelID]
         },
     });
-
 }
 
 async function destroyMail(account: string, id: string, gmail: gmail_v1.Gmail) {
-    const res = await gmail.users.threads.trash({
+    await gmail.users.threads.trash({
         userId: account,
         id: id,
     });
@@ -294,6 +292,7 @@ async function fetchMails(settings: ObsGMailSettings) {
     const base_folder = settings.mail_folder;
     const amount = settings.fetch_amount;
     const gmail = settings.gc.gmail;
+    assertPresent(gmail, "Gmail is not setup properly")
 
     new Notice('Gmail: Fetch starting');
     await mkdirP(base_folder)

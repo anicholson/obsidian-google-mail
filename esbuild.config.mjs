@@ -1,6 +1,7 @@
 import esbuild from "esbuild";
 import process from "process";
 import builtins from 'builtin-modules'
+import fs from 'node:fs'
 
 const banner =
 	`/*
@@ -11,12 +12,13 @@ if you want to view the source, please visit the github repository of this plugi
 
 const prod = (process.argv[2] === 'production');
 
-esbuild.build({
+let result = await esbuild.build({
 	banner: {
 		js: banner,
 	},
 	entryPoints: ['src/main.ts'],
 	bundle: true,
+	metafile: prod,
 	external: [
 		'obsidian',
 		'electron',
@@ -40,3 +42,5 @@ esbuild.build({
 	treeShaking: true,
 	outfile: 'main.js',
 }).catch(() => process.exit(1));
+
+fs.writeFileSync('meta.json', JSON.stringify(result.metafile, null, 2))

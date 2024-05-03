@@ -1,4 +1,4 @@
-import { App, request, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Plugin, PluginSettingTab } from 'obsidian';
 
 import { fetchMailAction } from 'src/GmailAPI';
 import { draw_settingtab, ObsGMailSettings, DEFAULT_SETTINGS } from 'src/setting';

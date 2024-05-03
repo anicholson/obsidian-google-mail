@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-google-mail",
-	"version": "1.4.3",
+	"version": "1.4.4",
 	"description": "It fetches Google Mail as md notes. For note taking on newletters and idea collections.",
 	"main": "main.js",
 	"keywords": [],
@@ -13,6 +13,7 @@
 	},
 	"devDependencies": {
 		"@types/node": "^16.11.6",
+		"@types/server-destroy": "^1.0.3",
 		"@types/turndown": "^5.0.1",
 		"@typescript-eslint/eslint-plugin": "5.29.0",
 		"@typescript-eslint/parser": "5.29.0",
@@ -25,7 +26,7 @@
 	},
 	"dependencies": {
 		"@google-cloud/local-auth": "^2.1.1",
-		"googleapis": "^109.0.0",
+		"@googleapis/gmail": "^9.1.0",
 		"open": "^8.4.0",
 		"turndown": "github:mixmark-io/turndown"
 	},

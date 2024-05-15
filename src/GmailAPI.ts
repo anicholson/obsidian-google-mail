@@ -254,18 +254,17 @@ async function saveMail(settings: ObsGMailSettings, id: string) {
 	const parts: MessagePart[] = payload.parts ? payload.parts : [payload];
 	flatten_parts(mailboxObject, parts);
 	if (!mailboxObject.raw_mhtml && !mailboxObject.raw_mtxt) {
-		let bodyText = "";
 		const htmlAsset = mailboxObject.assets.find(
 			(asset) =>
 				asset.mimeType == "text/html" || asset.mimeType == "text/plain",
 		);
-		if (htmlAsset && htmlAsset.body?.data) {
-			bodyText = htmlAsset.body.data;
+		if (htmlAsset && htmlAsset.body) {
+			mailboxObject.raw_mhtml = htmlAsset.body;
+			mailboxObject.raw_mtxt = htmlAsset.body;
 		} else {
 			console.warn("no body found");
 		}
-		mailboxObject.mhtml = bodyText;
-		mailboxObject.mtxt = bodyText;
+
 	}
 	console.log("mailboxObject:");
 	console.log(payload);
